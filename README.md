@@ -4,8 +4,8 @@ Welcome to the GitHub landing page for what we (Josh Jackson and myself) have af
 
 Some key links:
 
-- Preprint: https://osf.io/8ebyx/
-- Open materials on OSF: https://github.com/emoriebeck/behavior-prediction
+- Preprint: 
+- Open materials on OSF: https://osf.io/8ebyx/
 - Rendered Results (standalone web page via bookdown): https://emoriebeck.github.io/behavior-prediction/
 - R shiny webapp: https://emoriebeck.shinyapps.io/behavior-prediction/
 - Questions or concerns? Email emorie_beck@northwestern.edu

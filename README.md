@@ -1,6 +1,6 @@
 # behavior-prediction
  
-Welcome to the OSF landing page for what we have affectionately called the idiographic prediction project.
+Welcome to the GitHub landing page for what we (Josh Jackson and myself) have affectionately called the idiographic prediction project.
 
 Some key links:
 

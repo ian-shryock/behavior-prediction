@@ -1,0 +1,474 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# Data Cleaning {#cleaning}
+
+## Pre-Share Cleaning  
+For the purposes of this study, we are only sharing the data used in this study (for both items and participants). ESM data were pre-cleaned because data imported from jsPsych are in a format not easily interpretable within R. An R script that shows the full procedure for extracting jsPscyh data is available on the OSF page for this study. Trait data were downloaded from Qualtrics and directly imported and cleaned as shown below.  
+
+In addition, in order to anonymize participants, we have changed their ID's using our master list, which we cannot make available because it contains identifying information.  
+
+```{r ipcs esm data combine, eval = F}
+participants <- googlesheets4::sheets_read("https://docs.google.com/spreadsheets/d/1r808gQ-LWfG98J9rvt_CRMHtmCFgtdcfThl0XA0HHbM/edit#gid=16299281", sheet = "ESM") %>%
+  select(SID, Name, Email) %>%
+  mutate(new = seq(1, nrow(.), 1),
+         new = ifelse(new < 10, paste("0", new, sep = ""), new))
+1
+
+# wave 1 esm 
+load(sprintf("%s/04-data/01-raw-data/clean_data_w1_2020-06-08.RData", res_path))
+
+# combine waves  
+bfi <- BFI %>% distinct() %>%
+  mutate(SID = mapvalues(SID, participants$SID, participants$new)) %>%
+  rename(orig_itemname = item) %>%
+  left_join(ipcs_codebook %>% select(category, trait, facet, itemname, orig_itemname, reverse_code))
+old.names <- ipcs_codebook$orig_itemname
+
+emo <- emotion %>%
+  select(-trait, -facet) %>%
+  mutate(item = str_remove_all(item, "E_")) %>%
+  mutate(SID = mapvalues(SID, participants$SID, participants$new)) %>%
+  rename(trait = item) %>%
+  left_join(ipcs_codebook %>% select(category, trait, facet, itemname, reverse_code))
+
+sit  <- sit %>%
+  filter(item %in% old.names) %>%
+  select(-trait, -facet, -answer) %>%
+  mutate(SID = mapvalues(SID, participants$SID, participants$new)) %>%
+  rename(orig_itemname = item) %>%
+  left_join(ipcs_codebook %>% select(category, trait, facet, itemname, orig_itemname, reverse_code))
+
+ds8 <- DS8 %>% 
+  select(-trait, -facet, -answer) %>%
+  mutate(SID = mapvalues(SID, participants$SID, participants$new)) %>%
+  rename(orig_itemname = item) %>%
+  left_join(ipcs_codebook %>% select(category, trait, facet, itemname, orig_itemname, reverse_code))
+
+save(bfi, emo, sit, ds8, file = sprintf("%s/04-data/esm_cleaned_combined_2021-04-07.RData", res_path))
+rm(list = ls())
+```
+
+```{r}
+train_fun <- function(x) {
+  if(length(unique(x[!is.na(x)]))==1){
+    replace <- c(0,1)[!0:1 %in% unique(x[!is.na(x)])[1]]
+    x[sample(1:length(x), 1)] <- replace
+  } else if (any(table(x) == 1)){
+    replace <- c(0,1)[which(table(x) <= 1)]
+    x[sample(1:length(x), 1)] <- replace
+  }
+  x
+}
+
+test_fun <- function(x) {
+  if(length(unique(x[!is.na(x)]))==1){
+    replace <- c(0,1)[!0:1 %in% unique(x[!is.na(x)])[1]]
+    x[sample(1:length(x), 1)] <- replace
+  }
+  x
+}
+```
+
+
+Now, we'll load in the cleaned and de-identified data.  
+
+```{r}
+load(url(sprintf("%s/04-data/01-raw-data/esm_cleaned_combined_2021-04-07.RData", res_path)))
+```
+
+## ESM Data Setup  
+Next, we need to make sure that all time information for IPCS is available. Specifically, this will allow us to control for overnight periods and unequal spacing between measurement occasions.  
+
+### Timing  
+First, we need to create empty rows in the data where there are missing assessments from the four target surveys per day as well as for the overnight periods. The function below uses the time stamp to figure out which blocks are missing and add those empty rows by indexing the time stamp of collected surveys as well as participants chosen start times.    
+
+```{r ipcs esm data cleaning}
+missing_fun <- function(d){
+  first_day <- unique(d$StartDate) # get first day
+  hourBlock <- unique(d$`Hour Block 1`) # get first hour block
+  max_day <- max(d$Day); max_day <- ifelse(max_day < 14, 14, max_day) # get number of days
+  d2 <- d %>% #mutate(StartDate = ifelse(is.na(StartDate), min(Date, na.), StartDate))
+    full_join(crossing(
+      Day = seq(0,max_day,1),
+      HourBlock = 1:6,
+      StartDate = first_day,
+      `Hour Block 1` = hourBlock)) %>% # cross existing data with "perfect" data
+    arrange(Day, HourBlock) %>%
+    mutate(Date = StartDate + Day,
+           Hour = ifelse(is.na(Hour), `Hour Block 1` + (HourBlock-1)*4, Hour),
+           Minute = ifelse(is.na(Minute), "00", Minute))
+  d2$Date[d2$Hour > 23] <- d2$Date[d2$Hour > 23] + 1 # some day blocks span days
+  d2$Hour[d2$Hour > 23] <- d2$Hour[d2$Hour > 23] - 24 # some day blocks span days
+  d2 <- d2 %>% mutate(
+    Full_Date = sprintf("%s %s:%s", as.character(Date), Hour, Minute)) %>%
+    select(-`Hour Block 1`, -StartDate) 
+}
+
+# create a data frame of timing info 
+ipcs_times <- emo %>% 
+  select(SID, StartDate, Date, Hour, Minute, Day, `Hour Block 1`, HourBlock) %>%
+  distinct() %>%
+  mutate(Minute = str_remove_all(Minute, ".csv"),
+         Minute = ifelse(as.numeric(Minute) < 10, sprintf("0%s", Minute), Minute)) %>%
+  arrange(SID, Date) %>%
+  group_by(SID) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(data = map(data, missing_fun)) %>%
+  unnest(data) %>%
+  arrange(SID, Date, Hour) %>%
+  group_by(SID) %>%
+  mutate(all_beeps = seq(1, n(), 1)) %>%
+  ungroup()
+```
+
+Here's the result
+```{r}
+ipcs_times
+```
+
+
+### Personality  
+Now it's time to wrangle the personality data. As a reminder, personality was assessed using the full BFI-2 (Soto & John, 2017). The scale was administered using a planned missing data design (Revelle et al., 2016). We have previously demonstrated both the between- and within-person construct validity of assessing personality using planned missing designs using the BFI-2 (https://osf.io/pj9sy/). The planned missingness was done within each Big Five trait separately, with three items from each trait included at each timepoint (75% missingness). Each item was answered relative to what a participant was just doing on a 5-point Likert-like scale from 1 "disagree strongly" to 5 "agree strongly." Items for each person at each assessment were determined by pulling 3 numbers (1 to 12) from a uniform distribution. The order of the resulting 15 items were then randomized before being displayed to participants.  
+
+#### Wrangle Raw Data
+```{r}
+# join with codebook, reverse code, composite within facets and spread to wide format
+bfi_wide <- bfi %>% 
+  select(SID, Date, Hour, Minute, trait, facet, value = responses2, reverse_code) %>%
+  mutate(Minute = str_remove_all(Minute, ".csv"),
+         Minute = ifelse(as.numeric(Minute) < 10, sprintf("0%s", Minute), Minute),
+         Full_Date = sprintf("%s %s:%s", as.character(Date), Hour, Minute)) %>%
+  mutate(value = as.numeric(value),
+         value = ifelse(!is.na(reverse_code) & reverse_code == "yes", reverse.code(-1, value, mini = 1, maxi = 5), value)) %>%
+  select(-reverse_code) %>%
+  group_by(SID, trait, facet, Full_Date) %>%
+  summarize(value = mean(value, na.rm = T)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = c("trait", "facet")
+              , values_from = "value"
+              , names_sep = "_") %>%
+  group_by(SID) %>%
+  arrange(SID, lubridate::ymd_hm(Full_Date)) %>%
+  mutate(all_beeps = seq(1, n(), 1)) %>%
+  ungroup()
+```
+
+#### Multiple Imputation  
+These data were collected using a planned missing design, so we need to impute data for the planned missing components.  
+```{r}
+# run MI
+bfi_mi <- data.frame(unclass(bfi_wide %>% select(-Full_Date)))
+set.seed(5)
+bfi_mi <- amelia(bfi_mi, m = 1, ts = "all_beeps", cs = "SID")$imputations[[1]] %>%
+  as_tibble() %>%
+  full_join(bfi_wide %>% select(SID, Full_Date, all_beeps)) %>%
+  select(-all_beeps)
+bfi_mi
+```
+
+Personality data:  
+```{r}
+bfi_mi
+```
+
+Now back to long format  
+
+```{r}
+bfi_long <- bfi_mi %>%
+  pivot_longer(cols = c(-SID, -Full_Date)
+               , names_to = c("trait", "facet")
+               , values_to = "value"
+               , names_sep = "_") %>%
+  mutate(category = "BFI-2")
+```
+
+### Other Measured Features  
+Emotion and Situation (Binary and DIAMONDS) Data (not planned missing, so no need to impute):  
+
+```{r}
+features <- emo %>%
+  full_join(sit) %>%
+  full_join(ds8) %>%
+  select(SID, category, trait, facet, itemname, Date, Hour, Minute, Day, HourBlock, value = responses2) %>%
+  mutate(Minute = str_remove_all(Minute, ".csv"),
+         Minute = ifelse(as.numeric(Minute) < 10, sprintf("0%s", Minute), Minute),
+         Full_Date = sprintf("%s %s:%s", as.character(Date), Hour, Minute),
+         value = as.numeric(value)) %>%
+  group_by(SID, category, trait, facet, Full_Date) %>% 
+  summarize(value = max(value)) %>%
+  ungroup()
+```
+
+```{r}
+features
+```
+
+### Timing Features  
+Finally, we'll create the timing features. These were created from the time stamps collected with each survey based on approaches used in other studies of idiographic prediction (e.g., Fisher & Soyster, 2019). To create these, we created time of day (4; morning, midday, evening, night) and day of the week dummy codes (7). Next, we create a cumulative time variable (in hours) from first beep (not used in analyses) that we used to create linear, quadratic, and cubic time trends (3) as well as 1 and 2 period sine and cosine functions across each 24 period (e.g., 2 period sine = \sin{\frac{2\pi}{12}}\ast\ {cumulative\ time}_t and 1 period sine = \sin{\frac{2\pi}{24}}\ast\ {cumulative\ time}_t).  
+
+```{r}
+time_features <- ipcs_times %>%
+  mutate(wkday = wday(Full_Date, label = T)
+         , Mon =     ifelse(wkday == "Mon", 1, 0)
+         , Tue =     ifelse(wkday == "Tue", 1, 0)
+         , Wed =     ifelse(wkday == "Wed", 1, 0)
+         , Thu =     ifelse(wkday == "Thu", 1, 0)
+         , Fri =     ifelse(wkday == "Fri", 1, 0)
+         , Sat =     ifelse(wkday == "Sat", 1, 0)
+         , Sun =     ifelse(wkday == "Sun", 1, 0)
+         , morning = ifelse(Hour  >= 5  & Hour < 11, 1, 0)
+         , midday =  ifelse(Hour  >= 11 & Hour < 17, 1, 0)
+         , evening = ifelse(Hour  >= 5  & Hour < 22, 1, 0)
+         , night =   ifelse(Hour  >= 22 & Hour < 5,  1, 0)) %>%
+  
+  ## sequential time differences for each persn
+  group_by(SID) %>%
+  mutate(tdif =      as.numeric(difftime(ymd_hm(Full_Date), lag(ymd_hm(Full_Date)), units = "hours"))) %>%
+  filter(is.na(tdif) | tdif > 1) %>%
+  mutate(tdif =      as.numeric(difftime(ymd_hm(Full_Date), lag(ymd_hm(Full_Date)), units = "hours"))
+         , tdif =    ifelse(is.na(tdif), 0, tdif)
+         , cumsumT = cumsum(tdif)) %>%
+  ungroup() %>%
+  
+  ## timing variables
+  mutate(linear =    as.numeric(scale(cumsumT))
+         , quad =    linear^2
+         , cub =     linear^3
+         , sin1p =   sin(((2*pi)/24)*cumsumT)
+         , sin2p =   sin(((2*pi)/12)*cumsumT)
+         , cos1p =   cos(((2*pi)/24)*cumsumT)
+         , cos2p =   cos(((2*pi)/12)*cumsumT)
+         ) %>%
+  
+  ## keep key variables and reshape
+  select(SID, Full_Date, Mon:night, linear:cos2p) %>%
+  pivot_longer(cols = c(-SID, -Full_Date)
+               , names_to = "trait"
+               , values_to = "value") %>%
+  mutate(category = "time"
+         , facet = trait)
+```
+
+```{r}
+time_features
+```
+
+### Combine Features  
+Now, let's bring the personality, affect/situation/DIAMONDS, and timing features together.  
+
+```{r}
+all_features <- bfi_long %>%
+  full_join(features) %>%
+  full_join(ipcs_times %>% select(SID, Full_Date)) %>%
+  full_join(time_features) %>%
+  arrange(SID, category, trait, facet, Full_Date)
+all_features
+```
+
+## Setup for Idiographic Machine Learning Models  
+
+The last step is the most important. We need to: 
+Separate the data for each outcome, participant, and feature set combination. In addition, the outcomes need to be lagged such that same time point features will be predicting "future" behavior. Moreover, the data must be split into training (first 75\%) and test sets (last 25\%). As we do this, we will also remove participants who have no variance in the outcome in either training or test sets as we can't (statistically) predict things without variance (even if no variance suggests a good prediction!).  
+
+The feature sets are as follows:  
+
+- Psychological: Big Five (BFI-2)  
+- Psychological: Affect  
+- Psychological: Big Five + Affect  
+- Situations: Binary  
+- Situations: DIAMONDS  
+- Situations: Binary + DIAMONDS
+- Full: Big Five + Affect + Binary + DIAMONDS  
+
+Each of these will be tested with and without the timing features for a total number of 14 feature sets.  
+
+For now, I'm not going to run the chunk below because it takes a long time. All the resulting files can be found in the online materials:  
+
+- 04-data/02-raw-data: data before being split into training and test  
+- 04-data/03-train-data: training data for each participant x outcome x feature set combination (14)  
+- 04-data/04-test-data: test data for each participant x outcome x feature set combination (14)  
+
+```{r, eval = F}
+save_fun <- function(d, group, set, outcome, SID, time){
+  print(paste(SID, outcome, group, set, time))
+    d_split <- initial_time_split(d, prop = 0.75)
+    d_train <- training(d_split)
+    d_test  <- testing(d_split)
+  if(any(table(d_train$o_value) < 2) | sd(d_train$o_value) == 0) {
+    return(NA) # no variance == can't use that participant
+  } else {
+    d_train <- d_train %>%
+      mutate_at(vars(one_of(dummy_vars)), train_fun) %>%
+      mutate_at(vars(one_of(c(dummy_vars, time_dummy))), factor)
+    ret <- F # this is indexing if there were any other issues or concerns to be aware of
+  }
+    if(length(unique(d_test$o_value[!is.na(d_test$o_value)])) == 1){
+    d_test <- d_test %>%
+      mutate_at(vars(one_of(dummy_vars)), test_fun) %>%
+      mutate_at(vars(one_of(c(dummy_vars, time_dummy))), factor)
+    ret <- c(ret, T)
+  } else {
+    d_test <- d_test %>%
+      mutate_at(vars(one_of(c(dummy_vars, time_dummy))), factor)
+    ret <- c(ret, F)
+    }
+    d <- d_train %>% full_join(d_test) %>% arrange(Full_Date)
+    d_split <- initial_time_split(d, prop = 0.75)
+    d_train <- training(d_split)
+    d_test  <- testing(d_split)
+    save(d, file = sprintf("%s/04-data/02-model-data/%s_%s_%s_%s_%s.RData"
+                         , res_path, SID, outcome, group, set, time))
+    save(d_train, file = sprintf("%s/04-data/03-train-data/%s_%s_%s_%s_%s.RData"
+                         , res_path, SID, outcome, group, set, time))
+    save(d_test, d_split, file = sprintf("%s/04-data/04-test-data/%s_%s_%s_%s_%s.RData"
+                         , res_path, SID, outcome, group, set, time))
+    # return(T)
+    if(any(ret == T)) ret <- T else ret <- F
+    return(ret)
+  # }
+}
+
+factor_fun <- function(x){if(is.numeric(x)){diff(range(x, na.rm = T)) %in% 1:2} else{F}}
+
+dummy_vars <- c("o_value", "argument", "interacted", "lostSmthng"
+                , "late", "frgtSmthng", "brdSWk", "excSWk", "AnxSWk"
+                , "tired", "sick", "sleeping", "class"
+                , "music", "internet", "TV", "study")
+time_dummy <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
+                , "morning", "midday", "evening", "night")
+
+data_fun <- function(group, set, outcome, time){
+  if(set != "all") groups <- set 
+  if(set == "all") {
+    if(group == "psychological") groups <- c("BFI-2", "Affect")
+    else if(group == "situations") groups <- c("S8-I", "sit")
+    else groups <- c("BFI-2", "Affect", "S8-I", "sit")
+  }
+  if(time == "time") groups <- c(groups, "time") 
+  out <- all_features %>% 
+    filter(trait == outcome) %>%
+    select(SID, Full_Date, value) %>%
+    group_by(SID) %>%
+    mutate(o_value = lag(value)) %>% 
+    ungroup() %>%
+    select(-value)
+  d <- all_features %>% 
+    filter(category %in% groups) %>%
+    mutate(name = ifelse(category == "BFI-2", paste(trait, facet, sep = "_"), trait)) %>%
+    select(SID, Full_Date, name, value) %>%
+    distinct() %>%
+    pivot_wider(names_from = "name"
+                , values_from = "value") %>%
+    full_join(out) %>%
+    filter(complete.cases(.))
+    
+  d %>% 
+    group_by(SID) %>% 
+    filter(n() >= 40) %>%
+    nest() %>% 
+    ungroup() %>%
+    mutate(data = pmap(list(data, group, set, outcome, SID, time), possibly(save_fun, NA_real_))) %>%
+    unnest(data)
+}
+
+nested_data <- tribble(
+  ~group, ~set,
+  "psychological", "BFI-2" , 
+  "psychological", "Affect", 
+  "psychological", "all"   , 
+  "situations"   , "sit"   , 
+  "situations"   , "S8-I"  , 
+  "situations"   , "all"   , 
+  "full"         , "all"   , 
+) %>%
+  full_join(crossing(group = c("psychological", "situations", "full")
+                     , time = c("no time", "time")
+                     , outcome = c("prcrst", "lonely"))) %>%
+  mutate(data = pmap(list(group, set, outcome, time), possibly(data_fun, NA_real_)))
+```
+
+## Demographics  
+
+```{r}
+load(url(sprintf("%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData", res_path)))
+
+dem <- baseline %>%
+  select(SID:race) %>%
+  mutate(age = year(ymd_hms(StartDate)) - as.numeric(YOB),
+         StartDate = as.Date(ymd_hms(StartDate)),
+         race = factor(race, 0:3, c("White", "Black", "Asian", "Other"))) %>%
+  select(-YOB) 
+
+ prelim_dem <- all_features %>%
+   filter(category %in% c("Affect", "BFI-2", "sit", "SI-8")) %>%
+   group_by(SID, Full_Date, trait, facet, category) %>%
+   summarize(value = mean(value, na.rm = T)) %>%
+   ungroup() %>%
+   pivot_wider(names_from = c("category", "trait", "facet")
+               , values_from = value) %>%
+   filter(complete.cases(.)) 
+ 
+ prelim_dem %>% 
+   group_by(SID) %>%
+   tally() %>% 
+   ungroup() %>% 
+   left_join(dem) %>%
+  summarize(N = length(unique(SID)),
+            n = sprintf("%.2f (%.2f; %i-%i", mean(n), sd(n), min(n), max(n)),
+            gender = sprintf("%i (%.2f%%)",sum(gender == "Female", na.rm = T), sum(gender == "Female", na.rm = T)/n()*100),
+            age = sprintf("%.2f (%.2f)", mean(age, na.rm = T), sd(age, na.rm = T)),
+            white = sprintf("%i (%.2f%%)"
+                            , sum(race == "White", na.rm = T)
+                            , sum(race == "White", na.rm = T)/n()*100),
+            black = sprintf("%i (%.2f%%)"
+                            , sum(race == "Black", na.rm = T)
+                            , sum(race == "Black", na.rm = T)/n()*100),
+            asian = sprintf("%i (%.2f%%)"
+                            , sum(race == "Asian", na.rm = T)
+                            , sum(race == "Asian", na.rm = T)/n()*100),
+            other = sprintf("%i (%.2f%%)"
+                            , sum(race == "Other", na.rm = T)
+                            , sum(race == "Other", na.rm = T)/n()*100),
+            StartDate = sprintf("%s (%s - %s)", median(StartDate), 
+                                min(StartDate), max(StartDate)))
+ 
+ final_dem <- prelim_dem %>%
+   group_by(SID) %>%
+   filter(n() >= 40) %>%
+   tally() %>% 
+   ungroup() %>% 
+   left_join(dem)
+ 
+unique(ldply(str_split(list.files(sprintf("%s/05-results/01-glmnet/01-tuning-models", res_path)), pattern = "_"), function(x) x[1]))$V1
+ 
+final_dem %>% 
+  filter(SID %in% unique(ldply(str_split(list.files(sprintf("%s/05-results/01-glmnet/01-tuning-models", local_path)), pattern = "_"), function(x) x[1]))$V1) %>%
+  summarize(N = length(unique(SID)),
+            n = sprintf("%.2f (%.2f; %i-%i", mean(n), sd(n), min(n), max(n)),
+            gender = sprintf("%i (%.2f%%)",sum(gender == "Female", na.rm = T), sum(gender == "Female", na.rm = T)/n()*100),
+            age = sprintf("%.2f (%.2f)", mean(age, na.rm = T), sd(age, na.rm = T)),
+            white = sprintf("%i (%.2f%%)"
+                            , sum(race == "White", na.rm = T)
+                            , sum(race == "White", na.rm = T)/n()*100),
+            black = sprintf("%i (%.2f%%)"
+                            , sum(race == "Black", na.rm = T)
+                            , sum(race == "Black", na.rm = T)/n()*100),
+            asian = sprintf("%i (%.2f%%)"
+                            , sum(race == "Asian", na.rm = T)
+                            , sum(race == "Asian", na.rm = T)/n()*100),
+            other = sprintf("%i (%.2f%%)"
+                            , sum(race == "Other", na.rm = T)
+                            , sum(race == "Other", na.rm = T)/n()*100),
+            StartDate = sprintf("%s (%s - %s)", median(StartDate), 
+                                min(StartDate), max(StartDate)))
+```
+
+
+```{r}
+rm(list = ls()[!ls() %in% c("codebook", "ipcs_codebook", "res_path", "local_path", "sheets", "outcomes", "ftrs")])
+```
+

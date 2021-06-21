@@ -24,7 +24,7 @@
 <meta name="author" content="Emorie D Beck" />
 
 
-<meta name="date" content="2021-05-25" />
+<meta name="date" content="2021-06-21" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -207,6 +207,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li class="chapter" data-level="6.5.2" data-path="summarizing-models.html"><a href="summarizing-models.html#profile-similarity"><i class="fa fa-check"></i><b>6.5.2</b> Profile Similarity</a></li>
 </ul></li>
 </ul></li>
+<li class="chapter" data-level="7" data-path="extended-discussion.html"><a href="extended-discussion.html"><i class="fa fa-check"></i><b>7</b> Extended Discussion</a>
+<ul>
+<li class="chapter" data-level="7.1" data-path="extended-discussion.html"><a href="extended-discussion.html#on-predicting-more-behaviors-more-of-the-time"><i class="fa fa-check"></i><b>7.1</b> On predicting more behaviors more of the time</a></li>
+<li class="chapter" data-level="7.2" data-path="extended-discussion.html"><a href="extended-discussion.html#the-person-situation-debate-revisited"><i class="fa fa-check"></i><b>7.2</b> The person situation debate revisited</a></li>
+<li class="chapter" data-level="7.3" data-path="extended-discussion.html"><a href="extended-discussion.html#limitations-and-conclusion"><i class="fa fa-check"></i><b>7.3</b> Limitations and Conclusion</a></li>
+</ul></li>
 <li class="chapter" data-level="" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i>References</a></li>
 <li class="divider"></li>
 <li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
@@ -291,7 +297,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb19-17"><a href="cleaning.html#cb19-17" aria-hidden="true" tabindex="-1"></a>  x</span>
 <span id="cb19-18"><a href="cleaning.html#cb19-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Now, we’ll load in the cleaned and de-identified data.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="cleaning.html#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/esm_cleaned_combined_2021-04-07.RData&quot;</span>, res_path))</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="cleaning.html#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">url</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/esm_cleaned_combined_2021-04-07.RData&quot;</span>, res_path)))</span></code></pre></div>
 </div>
 <div id="esm-data-setup" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> ESM Data Setup</h2>
@@ -393,41 +399,39 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 ##   1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19</code></pre>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="cleaning.html#cb27-1" aria-hidden="true" tabindex="-1"></a>bfi_mi</span></code></pre></div>
 <pre><code>## # A tibble: 8,672 x 17
-##    SID   agreeableness_Co… agreeableness_Re… agreeableness_T… conscientiousnes… conscientiousnes… conscientiousnes…
-##    &lt;chr&gt;             &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;
-##  1 01                 1.45              1                3                 4                 4                 4.79
-##  2 01                 2.43              3                2                 1                 1                 3.68
-##  3 01                 2.86              1.5              1.70              1.14              3.03              3   
-##  4 01                 3.39              2                4                 4.33              4                 4   
-##  5 01                 5                 2                3.85              3.04              3                 3.04
-##  6 01                 4                 4.59             4                 1.91              5                 5   
-##  7 01                 2                 1                3.88              2.18              3                 1.61
-##  8 01                 2                 6.30             2                 4                 2.96              5   
-##  9 01                 3.26              2.80             3                 3.17              2                 2   
-## 10 01                 4.5               3.23             2.39              3.5               1.63              3.09
-## # … with 8,662 more rows, and 10 more variables: extraversion_Assertiveness &lt;dbl&gt;,
-## #   extraversion_Energy.Level &lt;dbl&gt;, extraversion_Sociability &lt;dbl&gt;, neuroticism_Anxiety &lt;dbl&gt;,
-## #   neuroticism_Depression &lt;dbl&gt;, neuroticism_Emotional.Volatility &lt;dbl&gt;, openness_Aesthetic.Sensitivity &lt;dbl&gt;,
-## #   openness_Creative.Imagination &lt;dbl&gt;, openness_Intellectual.Curiosity &lt;dbl&gt;, Full_Date &lt;chr&gt;</code></pre>
+##    SID   agreeableness_Co… agreeableness_Re… agreeableness_Tr… conscientiousnes… conscientiousnes… conscientiousne… extraversion_As… extraversion_En…
+##    &lt;chr&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;            &lt;dbl&gt;            &lt;dbl&gt;
+##  1 01                 1.45              1                 3                 4                 4                4.79             4                2   
+##  2 01                 2.43              3                 2                 1                 1                3.68             4                3   
+##  3 01                 2.86              1.5               1.70              1.14              3.03             3                2                2   
+##  4 01                 3.39              2                 4                 4.33              4                4                2                4   
+##  5 01                 5                 2                 3.85              3.04              3                3.04             4.36             3   
+##  6 01                 4                 4.59              4                 1.91              5                5                2.76             4   
+##  7 01                 2                 1                 3.88              2.18              3                1.61             2.75             2.5 
+##  8 01                 2                 6.30              2                 4                 2.96             5                4                5.05
+##  9 01                 3.26              2.80              3                 3.17              2                2                1.07             3   
+## 10 01                 4.5               3.23              2.39              3.5               1.63             3.09             2                2   
+## # … with 8,662 more rows, and 8 more variables: extraversion_Sociability &lt;dbl&gt;, neuroticism_Anxiety &lt;dbl&gt;, neuroticism_Depression &lt;dbl&gt;,
+## #   neuroticism_Emotional.Volatility &lt;dbl&gt;, openness_Aesthetic.Sensitivity &lt;dbl&gt;, openness_Creative.Imagination &lt;dbl&gt;,
+## #   openness_Intellectual.Curiosity &lt;dbl&gt;, Full_Date &lt;chr&gt;</code></pre>
 <p>Personality data:</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="cleaning.html#cb29-1" aria-hidden="true" tabindex="-1"></a>bfi_mi</span></code></pre></div>
 <pre><code>## # A tibble: 8,672 x 17
-##    SID   agreeableness_Co… agreeableness_Re… agreeableness_T… conscientiousnes… conscientiousnes… conscientiousnes…
-##    &lt;chr&gt;             &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;
-##  1 01                 1.45              1                3                 4                 4                 4.79
-##  2 01                 2.43              3                2                 1                 1                 3.68
-##  3 01                 2.86              1.5              1.70              1.14              3.03              3   
-##  4 01                 3.39              2                4                 4.33              4                 4   
-##  5 01                 5                 2                3.85              3.04              3                 3.04
-##  6 01                 4                 4.59             4                 1.91              5                 5   
-##  7 01                 2                 1                3.88              2.18              3                 1.61
-##  8 01                 2                 6.30             2                 4                 2.96              5   
-##  9 01                 3.26              2.80             3                 3.17              2                 2   
-## 10 01                 4.5               3.23             2.39              3.5               1.63              3.09
-## # … with 8,662 more rows, and 10 more variables: extraversion_Assertiveness &lt;dbl&gt;,
-## #   extraversion_Energy.Level &lt;dbl&gt;, extraversion_Sociability &lt;dbl&gt;, neuroticism_Anxiety &lt;dbl&gt;,
-## #   neuroticism_Depression &lt;dbl&gt;, neuroticism_Emotional.Volatility &lt;dbl&gt;, openness_Aesthetic.Sensitivity &lt;dbl&gt;,
-## #   openness_Creative.Imagination &lt;dbl&gt;, openness_Intellectual.Curiosity &lt;dbl&gt;, Full_Date &lt;chr&gt;</code></pre>
+##    SID   agreeableness_Co… agreeableness_Re… agreeableness_Tr… conscientiousnes… conscientiousnes… conscientiousne… extraversion_As… extraversion_En…
+##    &lt;chr&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;            &lt;dbl&gt;            &lt;dbl&gt;
+##  1 01                 1.45              1                 3                 4                 4                4.79             4                2   
+##  2 01                 2.43              3                 2                 1                 1                3.68             4                3   
+##  3 01                 2.86              1.5               1.70              1.14              3.03             3                2                2   
+##  4 01                 3.39              2                 4                 4.33              4                4                2                4   
+##  5 01                 5                 2                 3.85              3.04              3                3.04             4.36             3   
+##  6 01                 4                 4.59              4                 1.91              5                5                2.76             4   
+##  7 01                 2                 1                 3.88              2.18              3                1.61             2.75             2.5 
+##  8 01                 2                 6.30              2                 4                 2.96             5                4                5.05
+##  9 01                 3.26              2.80              3                 3.17              2                2                1.07             3   
+## 10 01                 4.5               3.23              2.39              3.5               1.63             3.09             2                2   
+## # … with 8,662 more rows, and 8 more variables: extraversion_Sociability &lt;dbl&gt;, neuroticism_Anxiety &lt;dbl&gt;, neuroticism_Depression &lt;dbl&gt;,
+## #   neuroticism_Emotional.Volatility &lt;dbl&gt;, openness_Aesthetic.Sensitivity &lt;dbl&gt;, openness_Creative.Imagination &lt;dbl&gt;,
+## #   openness_Intellectual.Curiosity &lt;dbl&gt;, Full_Date &lt;chr&gt;</code></pre>
 <p>Now back to long format</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="cleaning.html#cb31-1" aria-hidden="true" tabindex="-1"></a>bfi_long <span class="ot">&lt;-</span> bfi_mi <span class="sc">%&gt;%</span></span>
 <span id="cb31-2"><a href="cleaning.html#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="sc">-</span>SID, <span class="sc">-</span>Full_Date)</span>
@@ -639,7 +643,7 @@ Separate the data for each outcome, participant, and feature set combination. In
 <span id="cb40-58"><a href="cleaning.html#cb40-58" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(trait <span class="sc">==</span> outcome) <span class="sc">%&gt;%</span></span>
 <span id="cb40-59"><a href="cleaning.html#cb40-59" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(SID, Full_Date, value) <span class="sc">%&gt;%</span></span>
 <span id="cb40-60"><a href="cleaning.html#cb40-60" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(SID) <span class="sc">%&gt;%</span></span>
-<span id="cb40-61"><a href="cleaning.html#cb40-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">o_value =</span> <span class="fu">lag</span>(value)) <span class="sc">%&gt;%</span> </span>
+<span id="cb40-61"><a href="cleaning.html#cb40-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">o_value =</span> <span class="fu">lead</span>(value)) <span class="sc">%&gt;%</span> </span>
 <span id="cb40-62"><a href="cleaning.html#cb40-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb40-63"><a href="cleaning.html#cb40-63" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>value)</span>
 <span id="cb40-64"><a href="cleaning.html#cb40-64" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> all_features <span class="sc">%&gt;%</span> </span>
@@ -678,7 +682,7 @@ Separate the data for each outcome, participant, and feature set combination. In
 </div>
 <div id="demographics-1" class="section level2" number="2.4">
 <h2><span class="header-section-number">2.4</span> Demographics</h2>
-<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="cleaning.html#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData&quot;</span>, res_path))</span>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="cleaning.html#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">url</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData&quot;</span>, res_path)))</span>
 <span id="cb41-2"><a href="cleaning.html#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-3"><a href="cleaning.html#cb41-3" aria-hidden="true" tabindex="-1"></a>dem <span class="ot">&lt;-</span> baseline <span class="sc">%&gt;%</span></span>
 <span id="cb41-4"><a href="cleaning.html#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(SID<span class="sc">:</span>race) <span class="sc">%&gt;%</span></span>
@@ -731,14 +735,9 @@ Separate the data for each outcome, participant, and feature set combination. In
 <span id="cb43-6"><a href="cleaning.html#cb43-6" aria-hidden="true" tabindex="-1"></a>   <span class="fu">left_join</span>(dem)</span>
 <span id="cb43-7"><a href="cleaning.html#cb43-7" aria-hidden="true" tabindex="-1"></a> </span>
 <span id="cb43-8"><a href="cleaning.html#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(<span class="fu">ldply</span>(<span class="fu">str_split</span>(<span class="fu">list.files</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/05-results/01-glmnet/01-tuning-models&quot;</span>, res_path)), <span class="at">pattern =</span> <span class="st">&quot;_&quot;</span>), <span class="cf">function</span>(x) x[<span class="dv">1</span>]))<span class="sc">$</span>V1</span></code></pre></div>
-<pre><code>##   [1] &quot;01&quot;  &quot;02&quot;  &quot;03&quot;  &quot;05&quot;  &quot;08&quot;  &quot;09&quot;  &quot;10&quot;  &quot;103&quot; &quot;105&quot; &quot;106&quot; &quot;107&quot; &quot;108&quot; &quot;11&quot;  &quot;110&quot; &quot;111&quot; &quot;112&quot; &quot;113&quot; &quot;118&quot;
-##  [19] &quot;119&quot; &quot;121&quot; &quot;123&quot; &quot;124&quot; &quot;126&quot; &quot;129&quot; &quot;133&quot; &quot;135&quot; &quot;146&quot; &quot;148&quot; &quot;149&quot; &quot;15&quot;  &quot;150&quot; &quot;152&quot; &quot;154&quot; &quot;155&quot; &quot;156&quot; &quot;157&quot;
-##  [37] &quot;158&quot; &quot;159&quot; &quot;160&quot; &quot;162&quot; &quot;164&quot; &quot;165&quot; &quot;166&quot; &quot;167&quot; &quot;168&quot; &quot;169&quot; &quot;17&quot;  &quot;170&quot; &quot;171&quot; &quot;174&quot; &quot;177&quot; &quot;18&quot;  &quot;185&quot; &quot;186&quot;
-##  [55] &quot;188&quot; &quot;189&quot; &quot;190&quot; &quot;192&quot; &quot;195&quot; &quot;196&quot; &quot;20&quot;  &quot;201&quot; &quot;206&quot; &quot;207&quot; &quot;21&quot;  &quot;211&quot; &quot;212&quot; &quot;214&quot; &quot;216&quot; &quot;22&quot;  &quot;220&quot; &quot;25&quot; 
-##  [73] &quot;26&quot;  &quot;27&quot;  &quot;30&quot;  &quot;31&quot;  &quot;32&quot;  &quot;33&quot;  &quot;35&quot;  &quot;36&quot;  &quot;38&quot;  &quot;40&quot;  &quot;43&quot;  &quot;44&quot;  &quot;49&quot;  &quot;51&quot;  &quot;52&quot;  &quot;53&quot;  &quot;56&quot;  &quot;58&quot; 
-##  [91] &quot;61&quot;  &quot;63&quot;  &quot;66&quot;  &quot;67&quot;  &quot;68&quot;  &quot;71&quot;  &quot;73&quot;  &quot;74&quot;  &quot;77&quot;  &quot;78&quot;  &quot;81&quot;  &quot;84&quot;  &quot;85&quot;  &quot;86&quot;  &quot;88&quot;</code></pre>
+<pre><code>## NULL</code></pre>
 <div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="cleaning.html#cb45-1" aria-hidden="true" tabindex="-1"></a>final_dem <span class="sc">%&gt;%</span> </span>
-<span id="cb45-2"><a href="cleaning.html#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(SID <span class="sc">%in%</span> <span class="fu">unique</span>(<span class="fu">ldply</span>(<span class="fu">str_split</span>(<span class="fu">list.files</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/05-results/01-glmnet/01-tuning-models&quot;</span>, res_path)), <span class="at">pattern =</span> <span class="st">&quot;_&quot;</span>), <span class="cf">function</span>(x) x[<span class="dv">1</span>]))<span class="sc">$</span>V1) <span class="sc">%&gt;%</span></span>
+<span id="cb45-2"><a href="cleaning.html#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(SID <span class="sc">%in%</span> <span class="fu">unique</span>(<span class="fu">ldply</span>(<span class="fu">str_split</span>(<span class="fu">list.files</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/05-results/01-glmnet/01-tuning-models&quot;</span>, local_path)), <span class="at">pattern =</span> <span class="st">&quot;_&quot;</span>), <span class="cf">function</span>(x) x[<span class="dv">1</span>]))<span class="sc">$</span>V1) <span class="sc">%&gt;%</span></span>
 <span id="cb45-3"><a href="cleaning.html#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">N =</span> <span class="fu">length</span>(<span class="fu">unique</span>(SID)),</span>
 <span id="cb45-4"><a href="cleaning.html#cb45-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">n =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%.2f (%.2f; %i-%i&quot;</span>, <span class="fu">mean</span>(n), <span class="fu">sd</span>(n), <span class="fu">min</span>(n), <span class="fu">max</span>(n)),</span>
 <span id="cb45-5"><a href="cleaning.html#cb45-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">gender =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%i (%.2f%%)&quot;</span>,<span class="fu">sum</span>(gender <span class="sc">==</span> <span class="st">&quot;Female&quot;</span>, <span class="at">na.rm =</span> T), <span class="fu">sum</span>(gender <span class="sc">==</span> <span class="st">&quot;Female&quot;</span>, <span class="at">na.rm =</span> T)<span class="sc">/</span><span class="fu">n</span>()<span class="sc">*</span><span class="dv">100</span>),</span>
@@ -761,7 +760,7 @@ Separate the data for each outcome, participant, and feature set combination. In
 ##       N n                    gender      age          white       black       asian       other       StartDate   
 ##   &lt;int&gt; &lt;chr&gt;                &lt;chr&gt;       &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       
 ## 1    99 57.41 (16.33; 40-109 75 (72.82%) 19.49 (1.31) 32 (31.07%) 14 (13.59%) 33 (32.04%) 16 (15.53%) NA (NA - NA)</code></pre>
-<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="cleaning.html#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>()[<span class="sc">!</span><span class="fu">ls</span>() <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;codebook&quot;</span>, <span class="st">&quot;ipcs_codebook&quot;</span>, <span class="st">&quot;res_path&quot;</span>, <span class="st">&quot;sheets&quot;</span>, <span class="st">&quot;outcomes&quot;</span>, <span class="st">&quot;ftrs&quot;</span>)])</span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="cleaning.html#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>()[<span class="sc">!</span><span class="fu">ls</span>() <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;codebook&quot;</span>, <span class="st">&quot;ipcs_codebook&quot;</span>, <span class="st">&quot;res_path&quot;</span>, <span class="st">&quot;local_path&quot;</span>, <span class="st">&quot;sheets&quot;</span>, <span class="st">&quot;outcomes&quot;</span>, <span class="st">&quot;ftrs&quot;</span>)])</span></code></pre></div>
 
 </div>
 </div>

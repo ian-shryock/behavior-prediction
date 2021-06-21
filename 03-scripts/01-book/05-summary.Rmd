@@ -390,6 +390,8 @@ bm_lonely <- plot_grid(ttl, bm_lonely, nrow = 2, rel_heights = c(.05,.95))
 bm_plot <- plot_grid(bm_prcrst, bm_lonely, ncol = 2, rel_widths = c(.55, .45)); bm_plot
 ggsave(bm_plot, file = sprintf("%s/05-results/05-figures/fig-1-best-models.pdf", local_path)
        , width = 12, height = 5)
+ggsave(bm_plot, file = sprintf("%s/05-results/05-figures/fig-1-best-models.png", local_path)
+       , width = 12, height = 5)
 ```
 
 Figure 1 presents histograms and descriptive statistics of accuracy and AUC across the full sample for each outcome and model. As is clear in the figure, predictive accuracy was high overall, with mean accuracy of .87 (Median .91 to .92) for loneliness and between .82 and .83 (Median .88 to .89) for procrastination. Similarly, AUC was also well above the .5 threshold with means ranging from .70 to .76 (Median .75 to .80) for loneliness and .69 to .70 (Median .70 to .75) for procrastination.  
@@ -670,6 +672,9 @@ p <- cowplot::plot_grid(px_plots_sum$p[[3]], px_plots_sum$p[[1]]
 ggsave(p, file = sprintf("%s/05-results/05-figures/fig-2-accuracy.pdf"
                            , local_path)
        , width = 8, height = 10)
+ggsave(p, file = sprintf("%s/05-results/05-figures/fig-2-accuracy.png"
+                           , local_path)
+       , width = 8, height = 10)
 ```
 
 Figure 2 in the manuscript is the combination of the classification accuracy graphs below. Each of the figures below present the median, 66%, and 95% range of classification accuracy for a random sample of 25 participants, ordered by the median accuracy (AUC is available in the online materials and webapp [“Model Performance Distributions”]). As is clear in the figures, accuracy varies both across people and within them. In other words, although there are between-person differences in the degree of accuracy, there are also within-person differences, depending on which features are used.  
@@ -880,7 +885,11 @@ var_freq <- param_res %>%
                filter(.metric == "accuracy")
              ) %>%
   filter(map_lgl(coefs, is.null) == F) %>%
-  mutate(coefs = map(coefs, ~(.) %>% data.frame() %>% rownames_to_column("Variable") %>% setNames(c("Variable", "coef")))) %>%
+  mutate(coefs = map(coefs, ~(.) %>% 
+                       data.frame() %>% 
+                       rownames_to_column("Variable") %>% 
+                       setNames(c("Variable", "coef")))
+         ) %>%
   select(-params) %>% 
   unnest(coefs) %>%
   mutate(Variable = str_remove_all(Variable, "_X1"),
@@ -898,7 +907,9 @@ var_freq <- param_res %>%
   tally() %>%
   ungroup() %>%
   mutate(n = n/N*100) %>%
-  left_join(ftrs %>% 
+  right_join(crossing(model = c("biscwit", "glmnet", "rf"), 
+                      outcome = c("lonely", "prcrst"),
+              ftrs %>% 
               select(group, Variable = old_name, new_name) %>%
               mutate(group = str_to_title(group)) %>%
               group_by(group) %>%
@@ -906,10 +917,10 @@ var_freq <- param_res %>%
                      ni = ifelse(ni < 10, paste0("0", ni), ni),
                      Variable2 = paste0(substr(group, 1, 1), ni)
               ) %>%
-              ungroup()
+              ungroup())
             ) %>%
   filter(!is.na(group)) %>%
-  distinct()
+  distinct() 
 ```
 
 ```{r}
@@ -1112,7 +1123,7 @@ p2 <- p2 + theme(legend.position = "none")
            names = paste0(Variable2, ": ", new_name)) %>%
     arrange(Variable2) %>%
     mutate(names = factor(names, .$names)) %>%
-    ggplot(aes(x = 1, y = 1:66)) +
+    ggplot(aes(x = 1, y = 1:67)) +
     geom_text(aes(label = rev(names)), hjust = 0, size = 3) +
     scale_x_continuous(limits = c(.9999, 1.1))+ 
     theme_classic() +
@@ -1421,30 +1432,30 @@ px_coef_fig <- param_res %>%
 
 As before, we'll show our three example participants. These figures are present in the manuscript as Figures 5-7.  
 
-##### Participant 169 (Figure 5)  
+##### Participant 169 (Figure 6)  
 Participant 169’s best model for procrastination used the psychological feature set without time for each of the three methods (accuracy = 0.94; AUC = 0.80). Variable importance (log odds ratios) for the features in their ENR model are shown in the bar graph in Figure 5. Across all three methods, there were some differences selected features, but consensus in the direction and general magnitude of them. Across all three, the top feature was the Openness to Experience facet Creative Imagination, perhaps indicating that this participant tended to procrastinate when they were feeling more creative or imaginative previously. As in clear in Figure 5, they also tended to procrastinate less when they were Intellectually Curious (O) and more when they felt afraid. Thus, it seems like this participant’s procrastination may partially hinge upon competition between intellectual and creative pursuits, as well general fears.  
 
 ```{r, fig.width = 6, fig.height = 8, fig.cap="Figure 5. Variable Importance (absolute value of log odds) for Participant 169’s best model predicting Procrastination. Each bar is a different feature. Color indicates feature category (psychological, situational, or time). Height of bars indicates the magnitude of the effect. (-)indicate negative effects (i.e. lower odds)."}
 (px_coef_fig %>% filter(outcome == "prcrst" & SID == "169" & model == "glmnet"))$p[[1]]
-ggsave(file = sprintf("%s/05-results/05-figures/fig-5-px-169.pdf", local_path)
+ggsave(file = sprintf("%s/05-results/05-figures/fig-6-px-169.pdf", local_path)
        , width = 6, height = 8)
 ```
 
-##### Participant 43 (Figure 6)  
+##### Participant 43 (Figure 7)  
 participant 43’s best model for loneliness used the situation feature set (without time; accuracy = 0.91; AUC = 0.83). As in seen in the bar graph of their ENR variable importance in Figure 6, the situation characteristics and features seem to indicate that obligations (e.g., duty, in class), physical health (e.g., sick, sleeping), and social interactions (Sociability, argument) were predictive of future feelings of loneliness. For example, both the situation feature Duty and being in class predicted less loneliness, while feeling sick and getting in an argument predicted more.  
 
 ```{r, fig.width = 6, fig.height = 8, fig.cap="Figure 6. Variable Importance (absolute value of log odds) for Participant 43’s best model predicting Loneliness. Each bar is a different feature. Color indicates feature category (psychological, situational, or time). Height of bars indicates the magnitude of the effect. (-) indicates negative effects."}
 (px_coef_fig %>% filter(outcome == "lonely" & SID == "43" & model == "glmnet"))$p[[1]]
-ggsave(file = sprintf("%s/05-results/05-figures/fig-6-px-43.pdf", local_path)
+ggsave(file = sprintf("%s/05-results/05-figures/fig-7-px-43.pdf", local_path)
        , width = 6, height = 8)
 ```
 
-##### Participant 160 (Figure 7)  
+##### Participant 160 (Figure 8)  
 Participant 160’s best models for procrastination utilized the full feature set (i.e. psychological and situational features) without time (see Figure 7; accuracy = 0.89, AUC = 0.94). ENR and BISCWIT agreed on the top three features: Sociability (DIAMONDS; negative), Sleeping (positive), and Depression (Neuroticism; negative) were each associated with future procrastination. Moreover, other related features, like attentiveness and Assertiveness (Extraversion), were also predictive of both outcomes.  
 
 ```{r, fig.width = 6, fig.height = 8, fig.cap="Figure 7. Variable Importance (absolute value of log odds) for Participant 160’s best model predicting Procrastination. Each bar is a different feature. Color indicates feature category (psychological, situational, or time). Height of bars indicates the magnitude of the effect. (-) indicates negative effects."}
 (px_coef_fig %>% filter(outcome == "prcrst" & SID == "160" & model == "glmnet"))$p[[1]]
-ggsave(file = sprintf("%s/05-results/05-figures/fig-7-px-160.pdf", local_path)
+ggsave(file = sprintf("%s/05-results/05-figures/fig-8-px-160.pdf", local_path)
        , width = 6, height = 8)
 ```
 
@@ -1516,15 +1527,17 @@ profile_plot_fun <- function(d, model, metric, outcome){
     theme_classic() + 
     theme(axis.text.x = element_text(angle = 90, face = "bold")
           , axis.text.y = element_text(face = "bold")
+          , plot.title = element_text(hjust = .5, face = "bold")
           , legend.position = "bottom"
           , strip.background = element_rect(fill = "black")
-          , strip.text = element_text(face = "bold", color = "white", size = rel(1.2)))
+          , strip.text = element_text(face = "bold", color = "white", size = rel(1.2))
+          )
   ggsave(p, file = sprintf("%s/05-results/05-figures/03-px-profiles/%s_%s_%s.pdf"
                            , local_path, outcome, model, metric)
-         , width = 10, height = 10)
+         , width = 12, height = 10)
   ggsave(p, file = sprintf("%s/05-results/05-figures/03-px-profiles/png/%s_%s_%s.png"
                            , local_path, outcome, model, metric)
-         , width = 10, height = 10)
+         , width = 12, height = 10)
   return(p)
 }
   
@@ -1553,9 +1566,12 @@ Broadly there are a few takeaways from each of these figures. First, relative to
 
 #### BISCWIT  
 Broadly there are a few takeaways from each of these figures. First, the relative magnitude of the correlations tended to be stronger in the positive direction than the negative one. Second, only a relatively small number of participants' best models had timing features. Third, even common features varied widely across people in presence, direction, and magnitude without exception. Finally, no two profiles are the same even just in which features were included, let alone in direction and magnitude of the associations.    
-##### Procrastination  
+##### Procrastination (Figure 5)  
 ```{r}
 (profile_sim_plots %>% filter(.metric == "accuracy" & model == "biscwit" & outcome == "prcrst"))$p[[1]]
+ggsave(file = sprintf("%s/05-results/05-figures/fig-5-px-coef-profiles.png"
+                           , local_path)
+       , width = 12, height = 10)
 ```
 
 ##### Loneliness  

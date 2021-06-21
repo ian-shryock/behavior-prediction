@@ -353,7 +353,7 @@ data_fun <- function(group, set, outcome, time){
     filter(trait == outcome) %>%
     select(SID, Full_Date, value) %>%
     group_by(SID) %>%
-    mutate(o_value = lag(value)) %>% 
+    mutate(o_value = lead(value)) %>% 
     ungroup() %>%
     select(-value)
   d <- all_features %>% 

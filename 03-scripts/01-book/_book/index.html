@@ -24,7 +24,7 @@
 <meta name="author" content="Emorie D Beck" />
 
 
-<meta name="date" content="2021-05-25" />
+<meta name="date" content="2021-06-21" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -207,6 +207,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li class="chapter" data-level="6.5.2" data-path="summarizing-models.html"><a href="summarizing-models.html#profile-similarity"><i class="fa fa-check"></i><b>6.5.2</b> Profile Similarity</a></li>
 </ul></li>
 </ul></li>
+<li class="chapter" data-level="7" data-path="extended-discussion.html"><a href="extended-discussion.html"><i class="fa fa-check"></i><b>7</b> Extended Discussion</a>
+<ul>
+<li class="chapter" data-level="7.1" data-path="extended-discussion.html"><a href="extended-discussion.html#on-predicting-more-behaviors-more-of-the-time"><i class="fa fa-check"></i><b>7.1</b> On predicting more behaviors more of the time</a></li>
+<li class="chapter" data-level="7.2" data-path="extended-discussion.html"><a href="extended-discussion.html#the-person-situation-debate-revisited"><i class="fa fa-check"></i><b>7.2</b> The person situation debate revisited</a></li>
+<li class="chapter" data-level="7.3" data-path="extended-discussion.html"><a href="extended-discussion.html#limitations-and-conclusion"><i class="fa fa-check"></i><b>7.3</b> Limitations and Conclusion</a></li>
+</ul></li>
 <li class="chapter" data-level="" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i>References</a></li>
 <li class="divider"></li>
 <li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
@@ -231,7 +237,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="header">
 <h1 class="title">Idiographic prediction of loneliness and procrastination</h1>
 <p class="author"><em>Emorie D Beck</em></p>
-<p class="date"><em>2021-05-25</em></p>
+<p class="date"><em>2021-06-21</em></p>
 </div>
 <div id="workspace" class="section level1" number="1">
 <h1><span class="header-section-number">Chapter 1</span> Workspace</h1>
@@ -239,67 +245,57 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2><span class="header-section-number">1.1</span> Packages</h2>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="index.html#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)              <span class="co"># creating tables</span></span>
 <span id="cb1-2"><a href="index.html#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)         <span class="co"># formatting and exporting tables</span></span>
-<span id="cb1-3"><a href="index.html#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)             <span class="co"># read excel codebooks and documentation</span></span>
-<span id="cb1-4"><a href="index.html#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(psych)              <span class="co"># biscuit / biscwit</span></span>
-<span id="cb1-5"><a href="index.html#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnet)             <span class="co"># elastic net regression</span></span>
-<span id="cb1-6"><a href="index.html#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnetUtils)        <span class="co"># extension of basic elastic net with CV</span></span>
-<span id="cb1-7"><a href="index.html#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)              <span class="co"># train and test for random forest</span></span>
-<span id="cb1-8"><a href="index.html#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vip)                <span class="co"># variable importance</span></span>
-<span id="cb1-9"><a href="index.html#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Amelia)             <span class="co"># multiple imputation (of time series)</span></span>
-<span id="cb1-10"><a href="index.html#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)          <span class="co"># date wrangling</span></span>
-<span id="cb1-11"><a href="index.html#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gtable)             <span class="co"># ggplot friendly tables</span></span>
-<span id="cb1-12"><a href="index.html#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(grid)               <span class="co"># ggplot friendly table rendering </span></span>
-<span id="cb1-13"><a href="index.html#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)          <span class="co"># more helpful ggplot friendly table updates</span></span>
-<span id="cb1-14"><a href="index.html#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plyr)               <span class="co"># data wranging</span></span>
-<span id="cb1-15"><a href="index.html#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)          <span class="co"># data wrangling</span></span>
-<span id="cb1-16"><a href="index.html#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggdist)             <span class="co"># distributional plots </span></span>
-<span id="cb1-17"><a href="index.html#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggridges)           <span class="co"># more distributional plots </span></span>
-<span id="cb1-18"><a href="index.html#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cowplot)            <span class="co"># flexibly arrange multiple ggplot objects</span></span>
-<span id="cb1-19"><a href="index.html#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)         <span class="co"># tidy model workflow and selection</span></span>
-<span id="cb1-20"><a href="index.html#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(modeltime)          <span class="co"># tidy models for time series</span></span>
-<span id="cb1-21"><a href="index.html#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(furrr)              <span class="co"># mapping many models in parallel </span></span></code></pre></div>
+<span id="cb1-3"><a href="index.html#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rio)                <span class="co"># importing html</span></span>
+<span id="cb1-4"><a href="index.html#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)             <span class="co"># read excel codebooks and documentation</span></span>
+<span id="cb1-5"><a href="index.html#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(psych)              <span class="co"># biscuit / biscwit</span></span>
+<span id="cb1-6"><a href="index.html#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnet)             <span class="co"># elastic net regression</span></span>
+<span id="cb1-7"><a href="index.html#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnetUtils)        <span class="co"># extension of basic elastic net with CV</span></span>
+<span id="cb1-8"><a href="index.html#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)              <span class="co"># train and test for random forest</span></span>
+<span id="cb1-9"><a href="index.html#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vip)                <span class="co"># variable importance</span></span>
+<span id="cb1-10"><a href="index.html#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Amelia)             <span class="co"># multiple imputation (of time series)</span></span>
+<span id="cb1-11"><a href="index.html#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)          <span class="co"># date wrangling</span></span>
+<span id="cb1-12"><a href="index.html#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gtable)             <span class="co"># ggplot friendly tables</span></span>
+<span id="cb1-13"><a href="index.html#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(grid)               <span class="co"># ggplot friendly table rendering </span></span>
+<span id="cb1-14"><a href="index.html#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)          <span class="co"># more helpful ggplot friendly table updates</span></span>
+<span id="cb1-15"><a href="index.html#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plyr)               <span class="co"># data wranging</span></span>
+<span id="cb1-16"><a href="index.html#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)          <span class="co"># data wrangling</span></span>
+<span id="cb1-17"><a href="index.html#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggdist)             <span class="co"># distributional plots </span></span>
+<span id="cb1-18"><a href="index.html#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggridges)           <span class="co"># more distributional plots </span></span>
+<span id="cb1-19"><a href="index.html#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cowplot)            <span class="co"># flexibly arrange multiple ggplot objects</span></span>
+<span id="cb1-20"><a href="index.html#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)         <span class="co"># tidy model workflow and selection</span></span>
+<span id="cb1-21"><a href="index.html#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># library(modeltime)          # tidy models for time series</span></span>
+<span id="cb1-22"><a href="index.html#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(furrr)              <span class="co"># mapping many models in parallel </span></span></code></pre></div>
 </div>
 <div id="directory-path" class="section level2" number="1.2">
 <h2><span class="header-section-number">1.2</span> Directory Path</h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="index.html#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># res_path &lt;- &quot;https://github.com/emoriebeck/big-five-prediction/blob/master&quot;</span></span>
-<span id="cb2-2"><a href="index.html#cb2-2" aria-hidden="true" tabindex="-1"></a>res_path <span class="ot">&lt;-</span> <span class="st">&quot;~/Box/network/other projects/idio prediction&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="index.html#cb2-1" aria-hidden="true" tabindex="-1"></a>res_path <span class="ot">&lt;-</span> <span class="st">&quot;https://github.com/emoriebeck/behavior-prediction/raw/main&quot;</span></span>
+<span id="cb2-2"><a href="index.html#cb2-2" aria-hidden="true" tabindex="-1"></a>local_path <span class="ot">&lt;-</span> <span class="st">&quot;~/Box/network/other projects/idio prediction&quot;</span></span></code></pre></div>
 </div>
 <div id="codebook" class="section level2" number="1.3">
 <h2><span class="header-section-number">1.3</span> Codebook</h2>
 <p>Each study has a separate codebook indexing matching, covariate, personality, and outcome variables. Moreover, these codebooks contain information about the original scale of the variable, any recoding of the variable (including binarizing outcomes, changing the scale, and removing missing data), reverse coding of scale variables, categories, etc.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="index.html#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># list of all codebook sheets</span></span>
-<span id="cb3-2"><a href="index.html#cb3-2" aria-hidden="true" tabindex="-1"></a>sheets <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s/01-codebooks/codebook.xlsx&quot;</span>, res_path) <span class="sc">%&gt;%</span> <span class="fu">excel_sheets</span>()</span>
-<span id="cb3-3"><a href="index.html#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="index.html#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># function for reading in sheets</span></span>
-<span id="cb3-5"><a href="index.html#cb3-5" aria-hidden="true" tabindex="-1"></a>read_fun <span class="ot">&lt;-</span> <span class="cf">function</span>(x){</span>
-<span id="cb3-6"><a href="index.html#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sprintf</span>(<span class="st">&quot;%s/01-codebooks/codebook.xlsx&quot;</span>, res_path) <span class="sc">%&gt;%</span> <span class="fu">read_xlsx</span>(., <span class="at">sheet =</span> x)</span>
-<span id="cb3-7"><a href="index.html#cb3-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-8"><a href="index.html#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="index.html#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># read in sheets and index source</span></span>
-<span id="cb3-10"><a href="index.html#cb3-10" aria-hidden="true" tabindex="-1"></a>codebook <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb3-11"><a href="index.html#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">sheet =</span> sheets,</span>
-<span id="cb3-12"><a href="index.html#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">codebook =</span> <span class="fu">map</span>(sheet, read_fun)</span>
-<span id="cb3-13"><a href="index.html#cb3-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb3-14"><a href="index.html#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="index.html#cb3-15" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="ot">&lt;-</span> (codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(sheet <span class="sc">==</span> <span class="st">&quot;codebook&quot;</span>))<span class="sc">$</span>codebook[[<span class="dv">1</span>]]</span>
-<span id="cb3-16"><a href="index.html#cb3-16" aria-hidden="true" tabindex="-1"></a>ipcs_codebook</span></code></pre></div>
+<span id="cb3-2"><a href="index.html#cb3-2" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="at">file =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s/01-codebooks/codebook.xlsx&quot;</span>, res_path), <span class="at">which =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="index.html#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>()</span>
+<span id="cb3-4"><a href="index.html#cb3-4" aria-hidden="true" tabindex="-1"></a>ipcs_codebook</span></code></pre></div>
 <pre><code>## # A tibble: 98 x 12
-##    category trait facet  itemname  old_desc scale  orig_scale_num description orig_itemname reverse_code long_trait
-##    &lt;chr&gt;    &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;     &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     
-##  1 BFI-2    E     scblty Sociabil… Was out… Liker… 1.             Is outgoin… E1            no           Extravers…
-##  2 BFI-2    E     scblty Sociabil… Was tal… Liker… 46.            Is talkati… E2            no           Extravers…
-##  3 BFI-2    E     scblty Sociabil… Tended … Liker… 16r.           Tends to b… E3            yes          Extravers…
-##  4 BFI-2    E     scblty Sociabil… Was som… Liker… 31r.           Is sometim… E4            yes          Extravers…
-##  5 BFI-2    E     assert Assertiv… Had an … Liker… 6.             Has an ass… E5            no           Extravers…
-##  6 BFI-2    E     assert Assertiv… Was dom… Liker… 21.            Is dominan… E6            no           Extravers…
-##  7 BFI-2    E     assert Assertiv… Found i… Liker… 36r.           Finds it h… E7            yes          Extravers…
-##  8 BFI-2    E     assert Assertiv… Preferr… Liker… 51r.           Prefers to… E8            yes          Extravers…
-##  9 BFI-2    E     enerL… Energy L… Was ful… Liker… 41.            Is full of… E9            no           Extravers…
-## 10 BFI-2    E     enerL… Energy L… Showed … Liker… 56.            Shows a lo… E10           no           Extravers…
-## # … with 88 more rows, and 1 more variable: long_name &lt;chr&gt;</code></pre>
+##    category trait facet  itemname  old_desc       scale                orig_scale_num description     orig_itemname reverse_code long_trait long_name
+##    &lt;chr&gt;    &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;                &lt;chr&gt;          &lt;chr&gt;           &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;      &lt;chr&gt;    
+##  1 BFI-2    E     scblty Sociabil… Was outgoing,… Likert scale 1 to 5… 1.             Is outgoing, s… E1            no           Extravers… Sociabil…
+##  2 BFI-2    E     scblty Sociabil… Was talkative. Likert scale 1 to 5… 46.            Is talkative.   E2            no           Extravers… Sociabil…
+##  3 BFI-2    E     scblty Sociabil… Tended to be … Likert scale 1 to 5… 16r.           Tends to be qu… E3            yes          Extravers… Sociabil…
+##  4 BFI-2    E     scblty Sociabil… Was sometimes… Likert scale 1 to 5… 31r.           Is sometimes s… E4            yes          Extravers… Sociabil…
+##  5 BFI-2    E     assert Assertiv… Had an assert… Likert scale 1 to 5… 6.             Has an asserti… E5            no           Extravers… Assertiv…
+##  6 BFI-2    E     assert Assertiv… Was dominant,… Likert scale 1 to 5… 21.            Is dominant, a… E6            no           Extravers… Assertiv…
+##  7 BFI-2    E     assert Assertiv… Found it hard… Likert scale 1 to 5… 36r.           Finds it hard … E7            yes          Extravers… Assertiv…
+##  8 BFI-2    E     assert Assertiv… Preferred to … Likert scale 1 to 5… 51r.           Prefers to hav… E8            yes          Extravers… Assertiv…
+##  9 BFI-2    E     enerL… Energy L… Was full of e… Likert scale 1 to 5… 41.            Is full of ene… E9            no           Extravers… Energy L…
+## 10 BFI-2    E     enerL… Energy L… Showed a lot … Likert scale 1 to 5… 56.            Shows a lot of… E10           no           Extravers… Energy L…
+## # … with 88 more rows</code></pre>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="index.html#cb5-1" aria-hidden="true" tabindex="-1"></a>outcomes <span class="ot">&lt;-</span> ipcs_codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">&quot;outcome&quot;</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(trait, long_name)</span>
 <span id="cb5-2"><a href="index.html#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="index.html#cb5-3" aria-hidden="true" tabindex="-1"></a>ftrs <span class="ot">&lt;-</span> codebook<span class="sc">$</span>codebook[[<span class="dv">3</span>]]</span></code></pre></div>
+<span id="cb5-3"><a href="index.html#cb5-3" aria-hidden="true" tabindex="-1"></a>ftrs <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="at">file =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s/01-codebooks/codebook.xlsx&quot;</span>, res_path), <span class="at">which =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-4"><a href="index.html#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>()</span></code></pre></div>
 <div id="measures" class="section level3" number="1.3.1">
 <h3><span class="header-section-number">1.3.1</span> Measures</h3>
 <p>Participants responded to a large battery of trait and ESM measures as part of the larger study. The present study focuses on ESM measures whose use we preregistered. A full list of the collected measures for the study can be found in supplementary codebooks in the online materials on the OSF and GitHub. The measures collected at each wave were identical. ESM measures were used to estimate idiographic personality prediction models.</p>
@@ -310,82 +306,79 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Personality was assessed using the full BFI-2 (Soto &amp; John, 2017). The scale was administered using a planned missing data design (Revelle et al., 2016). We have previously demonstrated both the between- and within-person construct validity of assessing personality using planned missing designs using the BFI-2 (<a href="https://osf.io/pj9sy/" class="uri">https://osf.io/pj9sy/</a>). The planned missingness was done within each Big Five trait separately, with three items from each trait included at each timepoint (75% missingness). Each item was answered relative to what a participant was just doing on a 5-point Likert-like scale from 1 “disagree strongly” to 5 “agree strongly.” Items for each person at each assessment were determined by pulling 3 numbers (1 to 12) from a uniform distribution. The order of the resulting 15 items were then randomized before being displayed to participants.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="index.html#cb6-1" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">&quot;BFI-2&quot;</span>)</span></code></pre></div>
 <pre><code>## # A tibble: 60 x 12
-##    category trait facet  itemname  old_desc scale  orig_scale_num description orig_itemname reverse_code long_trait
-##    &lt;chr&gt;    &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;     &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     
-##  1 BFI-2    E     scblty Sociabil… Was out… Liker… 1.             Is outgoin… E1            no           Extravers…
-##  2 BFI-2    E     scblty Sociabil… Was tal… Liker… 46.            Is talkati… E2            no           Extravers…
-##  3 BFI-2    E     scblty Sociabil… Tended … Liker… 16r.           Tends to b… E3            yes          Extravers…
-##  4 BFI-2    E     scblty Sociabil… Was som… Liker… 31r.           Is sometim… E4            yes          Extravers…
-##  5 BFI-2    E     assert Assertiv… Had an … Liker… 6.             Has an ass… E5            no           Extravers…
-##  6 BFI-2    E     assert Assertiv… Was dom… Liker… 21.            Is dominan… E6            no           Extravers…
-##  7 BFI-2    E     assert Assertiv… Found i… Liker… 36r.           Finds it h… E7            yes          Extravers…
-##  8 BFI-2    E     assert Assertiv… Preferr… Liker… 51r.           Prefers to… E8            yes          Extravers…
-##  9 BFI-2    E     enerL… Energy L… Was ful… Liker… 41.            Is full of… E9            no           Extravers…
-## 10 BFI-2    E     enerL… Energy L… Showed … Liker… 56.            Shows a lo… E10           no           Extravers…
-## # … with 50 more rows, and 1 more variable: long_name &lt;chr&gt;</code></pre>
+##    category trait facet  itemname  old_desc       scale                orig_scale_num description     orig_itemname reverse_code long_trait long_name
+##    &lt;chr&gt;    &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;                &lt;chr&gt;          &lt;chr&gt;           &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;      &lt;chr&gt;    
+##  1 BFI-2    E     scblty Sociabil… Was outgoing,… Likert scale 1 to 5… 1.             Is outgoing, s… E1            no           Extravers… Sociabil…
+##  2 BFI-2    E     scblty Sociabil… Was talkative. Likert scale 1 to 5… 46.            Is talkative.   E2            no           Extravers… Sociabil…
+##  3 BFI-2    E     scblty Sociabil… Tended to be … Likert scale 1 to 5… 16r.           Tends to be qu… E3            yes          Extravers… Sociabil…
+##  4 BFI-2    E     scblty Sociabil… Was sometimes… Likert scale 1 to 5… 31r.           Is sometimes s… E4            yes          Extravers… Sociabil…
+##  5 BFI-2    E     assert Assertiv… Had an assert… Likert scale 1 to 5… 6.             Has an asserti… E5            no           Extravers… Assertiv…
+##  6 BFI-2    E     assert Assertiv… Was dominant,… Likert scale 1 to 5… 21.            Is dominant, a… E6            no           Extravers… Assertiv…
+##  7 BFI-2    E     assert Assertiv… Found it hard… Likert scale 1 to 5… 36r.           Finds it hard … E7            yes          Extravers… Assertiv…
+##  8 BFI-2    E     assert Assertiv… Preferred to … Likert scale 1 to 5… 51r.           Prefers to hav… E8            yes          Extravers… Assertiv…
+##  9 BFI-2    E     enerL… Energy L… Was full of e… Likert scale 1 to 5… 41.            Is full of ene… E9            no           Extravers… Energy L…
+## 10 BFI-2    E     enerL… Energy L… Showed a lot … Likert scale 1 to 5… 56.            Shows a lot of… E10           no           Extravers… Energy L…
+## # … with 50 more rows</code></pre>
 </div>
 <div id="affect" class="section level5" number="1.3.1.1.2">
 <h5><span class="header-section-number">1.3.1.1.2</span> Affect</h5>
 <p>Items capturing affect were initially pulled from the PANAS-X (Watson &amp; Clark, 1994). In order to reduce redundancy, these were cross-referenced with the BFI-2 and duplicated items (e.g., “excited” were only asked once. Because we were not interested in scale score but in items, we further had research participants examine remaining items and asked them to indicate items that were not relevant to their experience. Finally, we added two “neutral” affect-related terms – goal-directed and purposeful. Each of these were rated on a 1 “disagree strongly” to 5 “agree strongly.”</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="index.html#cb8-1" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">&quot;Affect&quot;</span>)</span></code></pre></div>
 <pre><code>## # A tibble: 10 x 12
-##    category trait  facet itemname old_desc scale   orig_scale_num description orig_itemname reverse_code long_trait
-##    &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     
-##  1 Affect   angry  angry angry    Angry    Likert… &lt;NA&gt;           &lt;NA&gt;        A1            no           Angry     
-##  2 Affect   afraid afra… afraid   Afraid   Likert… &lt;NA&gt;           &lt;NA&gt;        A3            no           Afraid    
-##  3 Affect   happy  happy happy    Happy    Likert… &lt;NA&gt;           &lt;NA&gt;        A5            no           Happy     
-##  4 Affect   excit… exci… excited  Excited  Likert… &lt;NA&gt;           &lt;NA&gt;        A7            no           Excited   
-##  5 Affect   proud  proud proud    Proud    Likert… &lt;NA&gt;           &lt;NA&gt;        A9            no           Proud     
-##  6 Affect   guilty guil… guilty   Guilty   Likert… &lt;NA&gt;           &lt;NA&gt;        A10           no           Guilty    
-##  7 Affect   atten… atte… attenti… Attenti… Likert… &lt;NA&gt;           &lt;NA&gt;        A11           no           Attentive 
-##  8 Affect   conte… cont… content  Content  Likert… &lt;NA&gt;           &lt;NA&gt;        A12           no           Content   
-##  9 Affect   purpo… purp… purpose… Purpose… Likert… &lt;NA&gt;           &lt;NA&gt;        A13           no           Purposeful
-## 10 Affect   goald… goal… goaldir  Goal-di… Likert… &lt;NA&gt;           &lt;NA&gt;        A14           no           Goal-dire…
-## # … with 1 more variable: long_name &lt;chr&gt;</code></pre>
+##    category trait   facet   itemname  old_desc  scale                      orig_scale_num description orig_itemname reverse_code long_trait long_name
+##    &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;                      &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;      &lt;chr&gt;    
+##  1 Affect   angry   angry   angry     Angry     Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A1            no           Angry      Negative 
+##  2 Affect   afraid  afraid  afraid    Afraid    Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A3            no           Afraid     Negative 
+##  3 Affect   happy   happy   happy     Happy     Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A5            no           Happy      Positive 
+##  4 Affect   excited excited excited   Excited   Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A7            no           Excited    Positive 
+##  5 Affect   proud   proud   proud     Proud     Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A9            no           Proud      Positive 
+##  6 Affect   guilty  guilty  guilty    Guilty    Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A10           no           Guilty     Negative 
+##  7 Affect   attent… attent… attentive Attentive Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A11           no           Attentive  Positive 
+##  8 Affect   content content content   Content   Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A12           no           Content    Positive 
+##  9 Affect   purpos… purpos… purposef… Purposef… Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A13           no           Purposeful Neutral  
+## 10 Affect   goaldir goaldir goaldir   Goal-dir… Likert scale 1 to 5; 1 = … &lt;NA&gt;           &lt;NA&gt;        A14           no           Goal-dire… Neutral</code></pre>
 </div>
 <div id="binary-situations" class="section level5" number="1.3.1.1.3">
 <h5><span class="header-section-number">1.3.1.1.3</span> Binary Situations</h5>
 <p>Binary situation indicators were derived by asking undergraduate research assistants to provide list of the common social, academic, and personal situations in which they tended to find themselves. From these, we derived a list of 19 unique situations. Separate items for arguing with or interacting with friends or relatives were composited in overall argument and interaction items. Participants checked a box for each event that occurred in the last hour (1 = occurred, 0 = did not occur).</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="index.html#cb10-1" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">&quot;sit&quot;</span>)</span></code></pre></div>
 <pre><code>## # A tibble: 18 x 12
-##    category trait  facet  itemname old_desc  scale orig_scale_num description orig_itemname reverse_code long_trait
-##    &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;    &lt;chr&gt;     &lt;chr&gt; &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     
-##  1 sit      study  study  study    Was stud… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_01        no           Studying  
-##  2 sit      argum… argum… argFrnd  Had an a… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_02        no           Argument  
-##  3 sit      argum… argum… argFam   Had an a… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_03        no           Argument  
-##  4 sit      inter… inter… IntFrnd  Interact… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_04        no           Interacted
-##  5 sit      inter… inter… IntFam   Interact… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_05        no           Interacted
-##  6 sit      lostS… lostS… lostSmt… Lost som… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_06        no           Lost some…
-##  7 sit      late   late   late     Was late… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_07        no           Late      
-##  8 sit      frgtS… frgtS… frgtSmt… Forgot s… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_08        no           Forgot so…
-##  9 sit      brdSWk brdSWk brdSWk   Was bore… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_09        no           Bored wit…
-## 10 sit      excSWk excSWk excSWk   Was exci… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_10        no           Excited a…
-## 11 sit      AnxSWk AnxSWk AnxSWk   Was anxi… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_11        no           Anxious a…
-## 12 sit      tired  tired  tired    Felt tir… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_12        no           Tired     
-## 13 sit      sick   sick   sick     Felt sick 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_13        no           Sick      
-## 14 sit      sleep… sleep… sleeping Was slee… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_15        no           Sleeping  
-## 15 sit      class  class  class    Was in c… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_16        no           In Class  
-## 16 sit      music  music  music    Was list… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_17        no           Listening…
-## 17 sit      inter… inter… internet Was on t… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_18        no           On the in…
-## 18 sit      TV     TV     TV       Was watc… 0 = … &lt;NA&gt;           &lt;NA&gt;        sit_19        no           Watching …
-## # … with 1 more variable: long_name &lt;chr&gt;</code></pre>
+##    category trait   facet   itemname  old_desc          scale        orig_scale_num description orig_itemname reverse_code long_trait    long_name   
+##    &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;             &lt;chr&gt;        &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;         &lt;chr&gt;       
+##  1 sit      study   study   study     Was studying or … 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_01        no           Studying      &lt;NA&gt;        
+##  2 sit      argume… argume… argFrnd   Had an argument … 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_02        no           Argument      Argument wi…
+##  3 sit      argume… argume… argFam    Had an argument … 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_03        no           Argument      Argument wi…
+##  4 sit      intera… intera… IntFrnd   Interacted with … 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_04        no           Interacted    Interacted …
+##  5 sit      intera… intera… IntFam    Interacted with … 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_05        no           Interacted    Interacted …
+##  6 sit      lostSm… lostSm… lostSmth… Lost something    0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_06        no           Lost somethi… Lost someth…
+##  7 sit      late    late    late      Was late for som… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_07        no           Late          Late        
+##  8 sit      frgtSm… frgtSm… frgtSmth… Forgot something  0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_08        no           Forgot somet… Forgot some…
+##  9 sit      brdSWk  brdSWk  brdSWk    Was bored with s… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_09        no           Bored with s… Bored with …
+## 10 sit      excSWk  excSWk  excSWk    Was excited abou… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_10        no           Excited abou… &lt;NA&gt;        
+## 11 sit      AnxSWk  AnxSWk  AnxSWk    Was anxious abou… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_11        no           Anxious abou… &lt;NA&gt;        
+## 12 sit      tired   tired   tired     Felt tired        0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_12        no           Tired         Tired       
+## 13 sit      sick    sick    sick      Felt sick         0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_13        no           Sick          Sick        
+## 14 sit      sleepi… sleepi… sleeping  Was sleeping      0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_15        no           Sleeping      Sleeping    
+## 15 sit      class   class   class     Was in class      0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_16        no           In Class      In Class    
+## 16 sit      music   music   music     Was listening to… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_17        no           Listening to… Listening t…
+## 17 sit      intern… intern… internet  Was on the Inter… 0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_18        no           On the inter… On the inte…
+## 18 sit      TV      TV      TV        Was watching TV   0 = did not… &lt;NA&gt;           &lt;NA&gt;        sit_19        no           Watching TV   Watching TV</code></pre>
 </div>
 <div id="diamonds-situation-features" class="section level5" number="1.3.1.1.4">
 <h5><span class="header-section-number">1.3.1.1.4</span> DIAMONDS Situation Features</h5>
 <p>Psychological features of situations were measured using the ultra brief version of the “Situational Eight” DIAMONDS (Duty, Intellect, Adversity, Mating, pOsitivity, Negativity, Deception, and Sociality) scale (S8-I; Rauthmann &amp; Sherman, 2015). Items were measured on a 3-point scale from 1 “not at all” to 3 “totally.”</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="index.html#cb12-1" aria-hidden="true" tabindex="-1"></a>ipcs_codebook <span class="sc">%&gt;%</span> <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">&quot;S8-I&quot;</span>)</span></code></pre></div>
 <pre><code>## # A tibble: 8 x 12
-##   category trait  facet  itemname old_desc   scale orig_scale_num description orig_itemname reverse_code long_trait
-##   &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;    &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     
-## 1 S8-I     Duty   Duty   Duty     Work has … 1 (=… &lt;NA&gt;           &lt;NA&gt;        D1            no           Duty      
-## 2 S8-I     Intel… Intel… Intelle… Deep thin… 1 (=… &lt;NA&gt;           &lt;NA&gt;        D2            no           Intellect 
-## 3 S8-I     Adver… Adver… Adversi… Somebody … 1 (=… &lt;NA&gt;           &lt;NA&gt;        D3            no           Adversity 
-## 4 S8-I     Mating Mating Mating   Potential… 1 (=… &lt;NA&gt;           &lt;NA&gt;        D4            no           Mating    
-## 5 S8-I     pOsit… pOsit… pOsitiv… The situa… 1 (=… &lt;NA&gt;           &lt;NA&gt;        D5            no           pOsitivity
-## 6 S8-I     Negat… Negat… Negativ… The situa… 1 (=… &lt;NA&gt;           &lt;NA&gt;        D6            no           Negativity
-## 7 S8-I     Decep… Decep… Decepti… Somebody … 1 (=… &lt;NA&gt;           &lt;NA&gt;        D7            no           Deception 
-## 8 S8-I     Socia… Socia… Sociabi… Social in… 1 (=… &lt;NA&gt;           &lt;NA&gt;        D8            no           Sociabili…
-## # … with 1 more variable: long_name &lt;chr&gt;</code></pre>
+##   category trait   facet   itemname  old_desc                  scale       orig_scale_num description orig_itemname reverse_code long_trait long_name
+##   &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;                     &lt;chr&gt;       &lt;chr&gt;          &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;      &lt;chr&gt;    
+## 1 S8-I     Duty    Duty    Duty      Work has to be done.      1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D1            no           Duty       Duty     
+## 2 S8-I     Intell… Intell… Intellect Deep thinking is require… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D2            no           Intellect  Intellect
+## 3 S8-I     Advers… Advers… Adversity Somebody is being threat… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D3            no           Adversity  Adversity
+## 4 S8-I     Mating  Mating  Mating    Potential romantic partn… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D4            no           Mating     Mating   
+## 5 S8-I     pOsiti… pOsiti… pOsitivi… The situation is pleasan… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D5            no           pOsitivity pOsitivi…
+## 6 S8-I     Negati… Negati… Negativi… The situation contains n… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D6            no           Negativity Negativi…
+## 7 S8-I     Decept… Decept… Deception Somebody is being deceiv… 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D7            no           Deception  Deception
+## 8 S8-I     Sociab… Sociab… Sociabil… Social interactions are … 1 (= not a… &lt;NA&gt;           &lt;NA&gt;        D8            no           Sociality  Sociality</code></pre>
 </div>
 <div id="timing-features" class="section level5" number="1.3.1.1.5">
 <h5><span class="header-section-number">1.3.1.1.5</span> Timing Features</h5>
@@ -439,7 +432,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb14-22"><a href="index.html#cb14-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-23"><a href="index.html#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(baseline, </span>
 <span id="cb14-24"><a href="index.html#cb14-24" aria-hidden="true" tabindex="-1"></a>     <span class="at">file =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData&quot;</span>, res_path))</span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="index.html#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData&quot;</span>, res_path))</span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="index.html#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">url</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/04-data/01-raw-data/cleaned_combined_2020-05-06.RData&quot;</span>, res_path)))</span>
 <span id="cb15-2"><a href="index.html#cb15-2" aria-hidden="true" tabindex="-1"></a>dem <span class="ot">&lt;-</span> baseline <span class="sc">%&gt;%</span></span>
 <span id="cb15-3"><a href="index.html#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(SID<span class="sc">:</span>race) <span class="sc">%&gt;%</span></span>
 <span id="cb15-4"><a href="index.html#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age =</span> <span class="fu">year</span>(<span class="fu">ymd_hms</span>(StartDate)) <span class="sc">-</span> <span class="fu">as.numeric</span>(YOB),</span>
@@ -466,9 +459,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb15-25"><a href="index.html#cb15-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">StartDate =</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s (%s - %s)&quot;</span>, <span class="fu">median</span>(StartDate), </span>
 <span id="cb15-26"><a href="index.html#cb15-26" aria-hidden="true" tabindex="-1"></a>                                <span class="fu">min</span>(StartDate), <span class="fu">max</span>(StartDate)))</span></code></pre></div>
 <pre><code>## # A tibble: 1 x 8
-##       n gender       age          white       black       asian       other      StartDate                         
-##   &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;      &lt;chr&gt;                             
-## 1   208 154 (71.96%) 19.51 (1.27) 69 (32.24%) 34 (15.89%) 67 (31.31%) 30 (14.02… 2019-03-29 (2018-10-17 - 2019-12-…</code></pre>
+##       n gender       age          white       black       asian       other       StartDate                           
+##   &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;                               
+## 1   208 154 (71.96%) 19.51 (1.27) 69 (32.24%) 34 (15.89%) 67 (31.31%) 30 (14.02%) 2019-03-29 (2018-10-17 - 2019-12-05)</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="index.html#cb17-1" aria-hidden="true" tabindex="-1"></a>dem <span class="sc">%&gt;%</span></span>
 <span id="cb17-2"><a href="index.html#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(., <span class="st">&quot;html&quot;</span></span>
 <span id="cb17-3"><a href="index.html#cb17-3" aria-hidden="true" tabindex="-1"></a>        , <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">&quot;ID&quot;</span>, <span class="st">&quot;Start Date&quot;</span>, <span class="st">&quot;Gender&quot;</span>, <span class="st">&quot;Race/Ethnicity&quot;</span>, <span class="st">&quot;Age&quot;</span>)</span>

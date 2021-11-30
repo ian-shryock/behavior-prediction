@@ -171,5 +171,21 @@ tibble(
 closeAllConnections()
 ```
 
+```{r}
+done <- tibble(file = list.files(sprintf("%s/05-results/01-glmnet/07-final-model-param", res_path))) %>%
+  mutate(done = "done")
+
+tibble(
+  file = sprintf("%s/04-data/02-model-data", res_path) %>% list.files() 
+) %>%
+  full_join(done) %>%
+  filter(is.na(done)) %>%
+  separate(file, c("SID", "outcome", "group", "set", "time"), sep = "_") %>%
+  mutate(time = str_remove_all(time, ".RData")) %>%
+  select(-done) %>%
+  write_csv(., file = sprintf("%s/03-scripts/03-cluster/args/glmnet.csv", local_path))
+```
+
+
 
 

@@ -1,0 +1,688 @@
+---
+title: "Predicting Loneliness"
+author: Ian Shryock
+output: 
+  bookdown::pdf_document2:
+    toc: TRUE
+    lof: TRUE
+    lot: TRUE
+    extra_dependencies: ["tocbibind", "float"]
+always_allow_html: true
+bibliography: references.bib
+link-citations: true
+---
+
+
+\newpage
+
+```{=tex}
+\renewcommand{\thetable}{\arabic{table}} 
+\renewcommand{\thefigure}{\arabic{figure}}
+```
+\newpage
+
+```{=tex}
+\listoftables
+\newpage
+```
+# Research Problem
+
+In this project, I follow up on the analyses conducted by @beck_personalized_2022 and create nomothetic models for predicting loneliness. A succinct phrasing of the overarching research question is: do models derived from populations or from a single individual provide better predictions of individual behaviors and feelings?
+
+Positivist science has largely endeavored to uncover general principles, and psychology is no exception. We use data from samples to describe how populations typically behave and feel. Clinicians, however, work in the opposite direction -- they try and understand individuals using general scientific principles supplemented with specific information they have learned about those individuals. This leaves them susceptible to the ecological fallacy, which is essentially the idea that a general description of how people behavior on average may not be directly applicable to how a single person behaves [@molenaar_manifesto_2004]. Whereas the nomothetic approach answers the question "what treatment will be best for the population" the idiographic approach asks "what is the best treatment for this person." What we need, then, are models for understanding how single individuals behave that can complement these population based models and enable us to personalize treatment [@stumpp_evidence-based_2021].
+
+In order to demonstrate the utility of an idiographic approach, @beck_personalized_2022 created numerous models that use a single person's data to predict their own future affect and behavior. However, they left out an important comparison: do these models outperform models created with population data?
+
+In the current study, I create some admittedly naive nomothetic models to compare to their measures of model performance.
+
+```{r, echo = FALSE, warnings = FALSE, message=FALSE}
+knitr::opts_chunk$set(message = FALSE, warnings = FALSE)
+
+library(tidyverse)
+library(tidymodels)
+library(rio)
+library(here)
+library(rsample)
+library(janitor)
+#library(tidyroll)
+library(caret)
+#library(nestedcv)
+library(doParallel)
+library(finalfit)
+library(cutpointr)
+library(vip)
+library(rattle)
+library(viridis)
+library(papaja)
+library(kableExtra)
+library(knitr)
+```
+
+# Descriptions of the Data
+
+```{r, echo = FALSE}
+i_am(path = "03-scripts/03-nomothetic/nomothetic_models.Rmd")
+
+
+
+train_files <- list.files(here("04-data/03-train-data"), 
+                    pattern = "*lonely_full_all_time.RData", 
+                    full.names = TRUE)
+
+train_files <- setNames(train_files, train_files)
+
+col_names1 <- names(import(train_files[1]))
+
+data <- map_dfr(train_files, 
+                ~import(.),
+                .id = "file") %>% 
+  mutate(file2 = str_remove(file, "/Users/ishryock/Documents/GitHub/behavior-prediction/04-data/03-train-data/"),
+           id = as.factor(paste0("p_", str_remove(file2, "_lonely_full_all_time.RData")))) %>% 
+  clean_names() %>% 
+  group_by(id) %>% 
+  arrange(full_date) %>% 
+  mutate(surv_num = seq_along(full_date),
+         max_surv = max(surv_num)) %>% 
+select(-night)# zero variance
+```
+
+```{r, echo = FALSE}
+
+count_sums <- data %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup %>% 
+  summarise(mean = mean(max_surv), min = min(max_surv), max= max(max_surv))
+
+personality_sums <- data %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup %>% 
+mutate(agree = (agreeableness_compassion + 
+                  agreeableness_respectfulness + 
+                  agreeableness_trust)/3, 
+       open = (openness_aesthetic_sensitivity+ 
+                 openness_creative_imagination + 
+                 openness_intellectual_curiosity)/3, 
+       neurot = (neuroticism_anxiety + 
+                   neuroticism_depression + 
+                   neuroticism_emotional_volatility)/3, 
+       extra = (extraversion_assertiveness + 
+                extraversion_energy_level + 
+                  extraversion_sociability)/3, 
+       consc = (conscientiousness_organization + 
+                  conscientiousness_productiveness + 
+                  conscientiousness_responsibility)/3) %>% 
+  select(agree:consc) %>% 
+  summarise_all(list(mean, sd)) %>% 
+    pivot_longer(everything(), names_to = "var") %>% 
+  separate(var, sep = "_", into = c("var", "sum")) %>% 
+  mutate(sum = case_when(
+    sum == "fn1" ~ "Mean", 
+    sum == "fn2" ~ "SD"
+  )) %>% 
+  pivot_wider(id_cols = "var", names_from = "sum") %>% 
+    mutate(measure = "Trait")
+
+
+
+momentary_sums <- data %>% 
+  ungroup %>% 
+select(-contains("conscientiousness"), - contains("openness"), -contains("extraversion"), 
+       -contains("neuroticism"), -contains("agreeableness"), -starts_with("sin"), -starts_with("cos"), -starts_with("sat_"), -morning, -cub, -linear, -quad, -id, -surv_num, -max_surv, positivity = p_ositivity) %>% 
+  summarise(across(where(is.numeric), list(mean, sd))) %>% 
+  pivot_longer(everything(), names_to = "var") %>% 
+  separate(var, sep = "_", into = c("var", "sum")) %>% 
+  mutate(sum = case_when(
+    sum == 1 ~ "Mean", 
+    sum == 2 ~ "SD"
+  )) %>% 
+  pivot_wider(id_cols = "var", names_from = "sum") %>% 
+    mutate(measure = "Momentary")
+
+
+
+categorical_sums <- data %>% 
+  select(where(is.factor),  -starts_with("sin"), -starts_with("cos"), -starts_with("sat_"), -morning, -cub, -linear, -quad) %>% 
+  mutate_all(as.numeric) %>% 
+  mutate(across(everything(), ~.-1)) %>% 
+  summarize_all(sum) %>% 
+  ungroup %>% 
+summarise(across(where(is.numeric), list(mean, sd))) %>% 
+  pivot_longer(everything(), names_to = "var") %>%  
+ mutate(sum = case_when(
+    str_detect(var, "_1") ~ "Mean", 
+    str_detect(var, "_2") ~ "SD")) %>% 
+  mutate(var = str_remove(var, "_[0-9]")) %>% 
+  pivot_wider(id_cols = "var", names_from = "sum") %>%   
+  mutate(measure = "Situation and Time", 
+         measure = case_when(
+           var == "o_value" ~ "Outcome", 
+           TRUE ~ measure
+         ), 
+         var = case_when(
+           var == "o_value" ~ "lonely", 
+           TRUE ~ var
+         )) 
+
+
+all_sums <- bind_rows(personality_sums, momentary_sums) %>% 
+  bind_rows(categorical_sums) %>% 
+  select(measure, everything()) %>% 
+  mutate(across(where(is.numeric), ~printnum(.)))
+
+
+
+
+collapse_rows_df <- function(df, variable){
+
+  group_var <- enquo(variable)
+
+  df %>%
+    group_by(!! group_var) %>%
+    mutate(groupRow = 1:n()) %>%
+    ungroup() %>%
+    mutate(!!quo_name(group_var) := ifelse(groupRow == 1, as.character(!! group_var), "")) %>%
+    select(-c(groupRow))
+}
+```
+
+The final data set has `r length(unique(data$id))` total participants which have responded to an average of `r printnum(count_sums$mean)`, and a minimum of `r count_sums$min` surveys. The outcome measure was a measure of loneliness binarized to enable the use of classification models.
+
+Because this was previously used in machine learning analyses, it comes preprocessed with many features we learned about in this course. For example, cyclic time variables, and various measures of cumulative time on linear, quadratic, and cubic scales. In terms of substantive variables, there are both measures of general personality Traits (self-reports about how people feel and behave in general, variable names are preceded by the big five trait they are associated with such as openness\_, extraversion\_, etc.), as well as contemporaneous personality States (about how they have felt and behaved in the past 4 hours). There are also measures of situational features like whether they had any social interaction, watched TV, or used the internet in the last four hours. These data have no missing values. See below for descriptives and note that categorical situational variables were summed within-person and means were taken across participants.
+
+```{r, echo = FALSE, warning=FALSE}
+all_sums %>% 
+  collapse_rows_df(measure) %>% 
+ kable(
+    booktabs = TRUE,
+    longtable = TRUE,
+    #escape = FALSE,
+    col.names = c("Measure Type", "Variable", "Mean", "SD"),
+     caption = "Item Descriptives"
+  ) %>% 
+  # landscape() %>% 
+  kable_styling(font_size = 11, 
+                latex_options = c("scale_down", "repeat_header")) %>% 
+  kable_classic()
+ 
+```
+
+```{r preprocess, echo = FALSE}
+data2 <- data %>% 
+  select(o_value, everything(), -surv_num, -max_surv, -full_date, -file, -file2) %>% 
+  mutate(o_value = factor(as.numeric(o_value), levels = c(1, 2), labels = c("notlonely", "lonely"))) %>% 
+  data.frame()
+
+
+missingness <- ff_glimpse(data2) %>% 
+  bind_rows() %>%
+  select(label, missing_percent) %>% 
+  filter(missing_percent < 75)
+```
+
+```{r blueprint, echo = FALSE}
+dummy_vars <- c("o_value", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
+                , "morning", "midday", "evening", "argument"
+                , "interacted", "lost_Smthng", "late", "frgt_Smthng", "brd_S_Wk"
+                , "exc_S_Wk", "Anx_S_Wk", "tired", "sick", "sleeping", "class"
+                , "music", "internet", "TV", "study", "id") %>% 
+  str_to_lower()
+
+blueprint_lonely <- recipe(x = data2, 
+                           vars = colnames(data2), 
+                           roles = c("outcome", rep("predictor", 67))) %>% 
+  step_dummy(one_of(dummy_vars), -all_outcomes()) %>%
+      step_zv(all_numeric()) %>%
+    step_normalize(all_numeric())   
+
+  
+```
+
+```{r partition, echo = FALSE}
+set.seed(123)
+
+trainIndex <- createDataPartition(data2$id, list = FALSE, 
+                                  p = .08, times = 1)
+
+
+
+train_data2 <- data2[-trainIndex, ]
+test_data2 <- data2[trainIndex, ]
+```
+
+# The Models
+
+Broadly, I planned to use Accuracy to evaluate these models as that is what the original authors did. I also planned to look at AUC to give me a sense of how well these models perform above chance.
+
+## Logistic Regression
+
+I decided to start out with a basic unregularized logistic regression to see how poorly these models could perform. An unregularized model is typically undesirable when a large number of variables are included as predictors. Essentially, regularization techniques remove predictors from the model if they do not meaningfully contribute to prediction. This model does not do that, and instead includes every predictor I give it regardless of its utility for predicting loneliness. So, what you'll see here can be interpreted as a basic logistic regression can -- as straightforward linear combinations of the predictor variables. Logistic regression models do not have hyperparameters to tune.
+
+```{r tune , echo = FALSE}
+set.seed(123)
+
+log_grid = data.frame(alpha = 0, 
+                  lambda = 0)
+
+
+fitControl <-  trainControl(method = "cv", 
+                          number = 10, 
+                          classProbs = TRUE, 
+                          summaryFunction = mnLogLoss)
+
+```
+
+```{r, echo = FALSE}
+log_mod <- caret::train(blueprint_lonely, 
+                        data = train_data2, 
+                        method = "glmnet", 
+                        family = "binomial", 
+                        metric = "logLoss", 
+                        trControl = fitControl, 
+                        tuneGrid = log_grid)
+
+save(log_mod, file = here("05-results/edld", "log_mod.rda"))
+
+
+```
+
+```{r, echo = FALSE}
+load(here("05-results/edld", "log_mod.rda"))
+
+predicted_log <- predict(log_mod, test_data2, type='prob')
+#head(predicted_log)
+```
+
+```{r, echo = FALSE}
+pred_class_log <- ifelse(predicted_log$lonely>.2,1,0) ## chose an arbitrary value since cutpointr didn't find an optimal number
+
+confusion_log <- table(test_data2$o_value,pred_class_log)
+```
+
+```{r, echo = FALSE}
+#vip(log_mod,num_features = 10, geom = "point") + theme_bw()
+```
+
+```{r, echo = FALSE}
+log_coefs <- matrix(coef(log_mod$finalModel,log_mod$bestTune$lambda)) %>% data.frame()
+log_coefs <- coef(log_mod$finalModel,log_mod$bestTune$lambda)
+
+ind_log   <- order(abs(log_coefs),decreasing=T)
+top_log_coef <- head(as.matrix(log_coefs[ind_log[-1], ]), 20)
+
+
+
+```
+
+## Elastic Net
+
+The elastic net model is a regularized logistic regression. So, linear combinations of the predictor variables are used to predict the outcome. However, because these are regularized, not all predictors make it in the final model. This is helpful to reduce issues due to multicollinearity (when multiple predictors are nearly identical).
+
+Elastic net is a useful compromise between using either a ridge or LASSO regression and allows us to choose which balance between their penalty functions optimizes prediction. The different penalty functions have differential utility for some prediction problems, so optimizing $\alpha$ allows us to determine what balance of the penalty term we ought to apply.
+
+We also need to decide what the proper amount of regularization/shrinkage to apply (i.e. what improves prediction) by optimizing $\lambda$, which essentially decides how strongly to penalize predictors. High values of $\lambda$ strongly penalize non-contributing predictors while a value of zero means there will be no shrinkage applied.
+
+I use a pretty basic tuning grid that searches $\alpha$ from 0-1 in increments of 0..01 and values of $\lambda$ from 0.001-0.75 in increments of 0.01.
+
+```{r, echo = FALSE}
+elnet_grid <- expand.grid(alpha = seq(0,1,.01), lambda = seq(0.001,0.75,.01))  
+
+```
+
+```{r, eval = FALSE, echo = FALSE}
+
+
+Sys.time()
+
+elastic <- caret::train(blueprint_lonely, 
+                        data      = train_data2, 
+                        method    = "glmnet", 
+                        family = "binomial",
+                        metric = "logLoss",
+                        trControl = fitControl,
+                        tuneGrid  = elnet_grid)
+
+Sys.time()
+
+
+save(elastic, file = here("05-results/edld", "elastic.rda"))
+rm(elastic)
+```
+
+```{r, echo = FALSE}
+load(here("05-results/edld", "elastic.rda"))
+
+predicted_elnet <- predict(elastic, test_data2, type='prob')
+#head(predicted_log)
+
+```
+
+```{r, echo = FALSE}
+pred_class_elnet <- ifelse(predicted_elnet$lonely>.2,1,0) ## chose an arbitrary value since cutpointr didn't find an optimal number
+
+confusion_elnet <- table(test_data2$o_value,pred_class_elnet)
+```
+
+```{r, echo = FALSE}
+#vip(elastic,num_features = 10, geom = "point") + theme_bw()
+```
+
+```{r, echo = FALSE}
+elnet_coefs <- matrix(coef(elastic$finalModel,elastic$bestTune$lambda)) %>% data.frame()
+elnet_coefs <- coef(elastic$finalModel,elastic$bestTune$lambda)
+
+elnet_ind   <- order(abs(elnet_coefs),decreasing=T)
+top_elnet_coef <- head(as.matrix(elnet_coefs[elnet_ind[-1], ]), 20)
+
+```
+
+## Random Forest
+
+To replicate the analyses in the original paper, I included a random forest model. As opposed to the first two approaches that use regression, random forest uses decision trees. Decision trees turn classification problems into a series of binary categorization questions. For example, a very naive model might ask "is it currently Saturday night" and decide that when it is Saturday night, it will predict that people are lonely. It might go further and include multiple variables, for example concluding that people are lonely when it is both Saturday night and they are alone. As you can imagine, there are a lot of decisions these trees might attempt to make. Random forests approach this problem by creating many different combinations of splits on different variables to explore which splits optimize prediction.
+
+The mtry option allows us to select the number of predictors that we include in the models. In this case, I set it to simply 20. Is this justified? Probably not, but I wanted to ensure that the models were relatively quick to run, I know that the maximum number of predictors is \~ 80, and wanted to compared the top 20 predictors from each modeling technique.
+
+I did, however, look into the effect of different numbers of trees. Essentially, I trained the model using different amounts of bootstrapped information, looking at the effect that number of trees had on the prediction. Rather than aggregating across all of these models as is conventional, I selected the best performing model as my final mode.
+
+```{r, echo = FALSE}
+rf_grid <- expand.grid(mtry = 20,splitrule='gini',min.node.size=2)
+
+```
+
+```{r, eval = FALSE, echo = FALSE, warning = FALSE}
+Sys.time()
+
+   nbags <- c(5,seq(20,200,20))
+   bags <- vector('list',length(nbags))
+  
+    for(i in 1:length(nbags)){
+bags[[i]] <- caret::train(blueprint_lonely,
+                        data      = train_data2,
+                        method    = 'ranger',
+                        metric = "logLoss",
+                        trControl = fitControl,
+                        tuneGrid  = rf_grid,
+                        num.trees = nbags[[i]],
+                        max.depth = 60)
+
+
+
+    }
+   
+  
+save(bags, file = here("05-results/edld", "bags.rda"))   
+
+```
+
+```{r, eval = FALSE, echo = FALSE, warning=FALSE}
+load(here("05-results/edld", "bags.rda"))
+
+   nbags <- c(5,seq(20,200,20))
+
+logLoss_ <- c()
+
+for(i in 1:length(nbags)){
+  
+  logLoss_[i] = bags[[i]]$results$logLoss
+  
+}
+
+ggplot()+
+  geom_line(aes(x=nbags,y=logLoss_))+
+  xlab('Number ofs')+
+  ylab('Negative LogLoss')+
+  ylim(c(0,1))+
+  theme_bw()
+
+
+
+nbags[which.min(logLoss_)] ## 140
+
+rm(bags)
+```
+
+```{r finalforest, echo = FALSE, warning=FALSE}
+
+rforest <- caret::train(blueprint_lonely,
+                        data      = train_data2,
+                        method    = 'ranger',
+                        metric = "logLoss",
+                        family = "binomial",
+                        trControl = fitControl,
+                        tuneGrid  = rf_grid,
+                        num.trees = 140,
+                        max.depth = 60, 
+                        importance = "impurity")
+
+#save(rforest, file = here("05-results/edld", "rforest.rda"))
+#rm(rforest)
+```
+
+```{r, echo = FALSE}
+#load(here("05-results/edld", "rforest.rda"))
+#rforest$results
+
+predicted_forest <- predict(rforest, test_data2, type = "prob")
+
+```
+
+```{r, echo = FALSE}
+pred_class_forest <- ifelse(predicted_forest$lonely>.2 ,1,0) ## chose an arbitrary value since cutpointr didn't find an optimal number
+
+confusion_forest <- table(test_data2$o_value,pred_class_forest)
+```
+
+```{r, echo = FALSE}
+
+forest_imp <- importance(rforest$finalModel) %>% 
+  data.frame() %>% 
+  rownames_to_column() 
+names(forest_imp) <- c("rowname", "val")
+
+top_forest_imp <- forest_imp %>% 
+ arrange(desc(abs(val))) %>% 
+    head(20) %>% 
+  mutate(model = "Forest")
+ 
+
+```
+
+# Comparing Model Fits
+
+```{r, echo = FALSE}
+confusions = bind_rows(unlist(as.data.frame.matrix(confusion_log)), unlist(as.data.frame.matrix(confusion_elnet)), 
+                      unlist(as.data.frame.matrix(confusion_forest)))
+
+colnames(confusions) <- c("TN", "FN", "FP", "TP")
+
+confusions$Model <- c("logistic", "elastic", "rforest")
+confusions$LL <- c(log_mod$results$logLoss, min(elastic$results$logLoss), min(rforest$results$logLoss))
+confusions$AUC = c(
+        auc(cutpointr(x     = predicted_log$lonely,
+                     class = test_data2$o_value)), 
+        auc(cutpointr(x     = predicted_elnet$lonely,
+                     class = test_data2$o_value)), 
+        auc(cutpointr(x     = predicted_forest$lonely,
+                     class = test_data2$o_value))
+        )
+confusions <- confusions %>% 
+  mutate(  ACC = (TP + TN)/(TP + TN + FP + FN),
+           TPR = TP / (TP + FN),
+           TNR = TN / (TN + FP), 
+           PRE = TP / (TP + FP)) %>% 
+  select(Model, everything()) %>% 
+  mutate(across(where(is.numeric), ~printnum(.)))
+```
+
+Here's where things get awkward. These models are...shall we say...abysmally bad. That's a bit of an overstatement when comparing these models to the original paper, but they're pretty bad by conventional standards.
+
+The elastic net model does the best in terms of Accuracy, at `r confusions %>% filter(Model == "elastic") %>% select(ACC)`, compared to the mean of 0.87 in the original (although the median is 0.91). The AUC, too, is worse at `r confusions %>% filter(Model == "elastic") %>% select(AUC)` in the current models compared to 0.69 (median = 0.74) in the original.
+
+The random forest model is the best model in terms of AUC `r confusions %>% filter(Model == "rforest") %>% select(AUC)` and is comparable to 0.62 (median = 0.58) in the original.
+
+Surprisingly, the basic logistic regression is not all that far behind the others, with an AUC of `r confusions %>% filter(Model == "logistic") %>% select(AUC)` and accuracy of `r confusions %>% filter(Model == "rforest") %>% select(ACC)`.
+
+These models were pretty conservative, and had low True Positive Rates. This likely has a lot to do with the cutpoints I chose. Because the cutpoint function was unable to find an optimal cutpoint, I poked around manually. At 0.5, none of the models predicted a single instance of loneliness. To keep things interesting, I decreased the value until they were making at least a handful of predictions, though the False Positive Rate started increasing quickly. Much of these models' success seemed to come from not making predictions of loneliness, which was true for nearly 93% of observations. Could this be a low base rate issue? There is a very good chance.
+
+```{r , echo = FALSE, warning=FALSE}
+confusions %>% 
+ kable(
+    booktabs = TRUE,
+    longtable = TRUE,
+    #escape = FALSE,
+    col.names = colnames(confusions),
+     caption = "Model Fit Statistics"
+  ) %>% 
+  # landscape() %>% 
+  kable_styling(font_size = 11, 
+                latex_options = c("scale_down", "repeat_header")) %>% 
+  kable_classic()
+```
+\newpage
+See below for the results from the original paper, and note that because they created a single model for each person, these distribtuions are of models of different individuals. 
+
+
+```{r, results = 'asis', echo = FALSE, warning = FALSE, message=FALSE}
+include_graphics(here("05-results/edld", "beck_jacks_mod_res.png"))
+```
+\newpage
+
+# Plots
+
+## Model Fits
+### Logistic
+
+See...not a lot of separation in the predicted values for lonely versus lonely moments. This pattern will repeat itself across models. 
+
+
+```{r, echo = FALSE}
+notlonely <- which(test_data2$o_value=="notlonely")
+lonely <- which(test_data2$o_value=="lonely")
+
+
+plot(density(predicted_log[notlonely,]$lonely,adjust=1.5),xlab='',main='')
+points(density(predicted_log[lonely,]$lonely,adjust=1.5),lty=2,type='l')
+legend(x=0.35,y=2.75,c('Not Lonely','Lonely'),lty=c(1,2),bty='n')
+```
+\newpage
+The AUC curve on the right shows a model that does not do much better than would be expected by chance. 
+
+```{r, echo = FALSE, warning=FALSE}
+log.cut.obj <- cutpointr(x     = predicted_log$lonely,
+                     class = test_data2$o_value, 
+                     method = maximize_metric, 
+                     metric = accuracy)
+
+plot(log.cut.obj)
+
+#log.cut.obj$optimal_cutpoint ## not good...
+
+```
+
+### Elastic Net
+```{r, echo = FALSE}
+plot(density(predicted_elnet[notlonely,]$lonely,adjust=1.5),xlab='',main='')
+points(density(predicted_elnet[lonely,]$lonely,adjust=1.5),lty=2,type='l')
+legend(x=0.2,y=4.75,c('Not Lonely','Lonely'),lty=c(1,2),bty='n')
+```
+
+```{r, echo = FALSE, warning=FALSE}
+elnet.cut.obj <- cutpointr(x     = predicted_elnet$lonely,
+                     class = test_data2$o_value, 
+                     method = maximize_metric, 
+                     metric = accuracy)
+
+plot(elnet.cut.obj)
+
+#elnet.cut.obj$optimal_cutpoint 
+
+```
+\newpage
+
+### Random Forest
+
+Here, at least, we see two non-overlapping peaks. 
+
+
+```{r, echo = FALSE}
+plot(density(predicted_forest[notlonely,]$lonely,adjust=1.5),xlab='',main='')
+points(density(predicted_forest[lonely,]$lonely,adjust=1.5),lty=2,type='l')
+legend(x=0.3,y=3.75,c('Not Lonely','Lonely'),lty=c(1,2),bty='n')
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+forest.cut.obj <- cutpointr(x     = predicted_forest$lonely,
+                     class = test_data2$o_value, 
+                     method = maximize_metric, 
+                     metric = accuracy)
+
+plot(forest.cut.obj)
+
+#forest.cut.obj$optimal_cutpoint
+
+
+```
+
+## Comparing Coefficients/Importance
+
+```{r , echo = FALSE}
+top_log_coef2 <- top_log_coef %>%
+  data.frame() %>% 
+  rownames_to_column() %>% 
+  mutate(model = "Logistic")
+
+top_elnet_coef2 <- top_elnet_coef %>%
+  data.frame() %>% 
+  rownames_to_column() %>% 
+  mutate(model = "Elastic") 
+
+top_coefs <- bind_rows(top_elnet_coef2, top_log_coef2) 
+
+
+
+names(top_coefs) <- c("rowname", "val", "model")
+  
+top_coefs <- bind_rows(top_coefs, top_forest_imp) %>% 
+  mutate(predictor_type = case_when(
+    str_detect(rowname, "agreeableness|neuroticism|extraversion|conscientiousness|openness")~"Trait", 
+    str_detect(rowname, "id_")~"Individual", 
+    str_detect(rowname, "cos1|sin1|sat_|morning|sin2|cos2|cub|linear|quad")~"Time", 
+    TRUE ~"State"
+ ))
+
+top_coefs %>% 
+  ggplot(aes(predictor_type))+
+  geom_bar(aes(fill = predictor_type))+
+  scale_fill_viridis_d()+
+  facet_wrap(~model)+
+xlab("Predictor Type")+
+  ylab("")+
+labs(fill = "")+
+ggtitle("Predictor Types by Model")+
+  theme(axis.text.x = element_text(angle = 35)
+)
+
+
+
+```
+\newpage
+
+# Discussion
+
+My takeaway is that models can have somewhat reasonable fit statistics (i.e. accuracy) without being all that predictive. I created three models that were hesitant to make a decision that a person would be lonely. On one hand, the low base rate of loneliness makes this a reasaonable tendency. On the other, it inflated the false negative rate.
+
+These models underperformed idiographic models that were trained on much smaller datasets (since each person's data was used in isolation), which is to the credit of the idiographic approach. However, none of these models (mine or theirs) had fit statistics worthy of real-world implementation.
+
+Of course, this is not an apples-to-apples comparison. One major limitation of my work has less to do with the models (though there are limitations there, naturally) than with the cross-validation. In the original research, each person had a rolling window where 15 measurements would be used to predict the 16th. This allows the models to incorporate more behavioral/affective inertia, which are likely very important in predicting affect. Time constraints prevented me from hacking together a solution, but I have a strong feeling this would improve the models.
+
+I would also be curious to see how a leave-one-participant-out approach would fare, since that's a stronger test of the initial question about the relative merits of nomothetic versus idiographic models. The current models include some personalized data, but a more common situation would be to have an existing model trained on a sample, and apply it to a new person's data that is not present in the training data.
+
+An interesting pattern in these data can be seen in my final figure, which shows predictor types preferred by each model. Both the elastic net and logistic regression show that individuals were the most common of the top 20 strongest coefficients This is substantively interesting because the main question of this line of research is how personalized should models be. Unfortunately, the sample size is so small that I have a hard time deciding if this is because more people would be preferable, or that an idiographic approach is warranted because of the outsized influence of individuals. The fact that State affect/behavior is the second most common predictor type in these models is not particularly surprising.
+
+On the other hand, the important variables in the random forest model are perplexing. These are not coefficients, but were extracted using the importance() function, and give a metric of how influential the variables were in the final model. Here, we see Traits and Time as the most important. If I were to speculate wildly, I might say that TraitsxSpecificTimes = States. In other words, people that are extraverted tend to be out on Friday evenings, being extraverted. But I really don't think these models are strong enough to start reading into them.
+
+Ultimately, it seems that these models, like researchers, decide what variables are important in a very idiosyncratic process [@bastiaansen_time_2020]. This work is very much a first draft but was an interesting foray into the trials and tribulations of predictive modeling. I haven't drawn any substantive conclusions, but have started to wrap my head around the various challenges that confront researchers hoping to make predictions about human emotions. 
+
+\newpage

@@ -1,0 +1,289 @@
+---
+title: "nomothethic_models"
+author: "ian"
+date: "11/28/2022"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(rio)
+library(here)
+library(rsample)
+library(janitor)
+#library(tidyroll)
+library(caret)
+#library(nestedcv)
+library(doParallel)
+```
+
+```{r}
+i_am(path = "03-scripts/03-nomothetic/nomothetic_models.Rmd")
+
+
+
+train_files <- list.files(here("04-data/03-train-data"), 
+                    pattern = "*lonely_full_all_time.RData", 
+                    full.names = TRUE)
+
+train_files <- setNames(train_files, train_files)
+
+col_names1 <- names(import(train_files[1]))
+
+data <- map_dfr(train_files, 
+                ~import(.),
+                .id = "file") %>% 
+  mutate(file2 = str_remove(file, "/Users/ishryock/Documents/GitHub/behavior-prediction/04-data/03-train-data/"),
+           id = as.factor(paste0("p_", str_remove(file2, "_lonely_full_all_time.RData")))) %>% 
+  clean_names() %>% 
+  group_by(id) %>% 
+  arrange(full_date) %>% 
+  mutate(surv_num = seq_along(full_date),
+         max_surv = max(surv_num)) %>% 
+select(-night)# zero variance
+
+
+
+length(unique(data$id))
+```
+
+# Counting Available Datasets
+```{r, eval = FALSE}
+
+
+files <- data.frame(file = list.files(here("04-data/03-train-data"))) %>% 
+  separate(col = file, sep = "_", 
+           into = c("id", "outcome", "vars", "qualifier", "anytime")) %>% 
+  separate(col = "anytime", sep = " ", into = c("time"))
+
+
+
+lonely <- files %>% 
+  filter(outcome == "lonely") 
+
+lonely1 <- files %>% 
+  filter(outcome == "lonely", vars == "full", qualifiesr == "all") 
+
+lonely_sums <- lonely %>% 
+  group_by(id, vars, qualifier) %>% 
+  count()
+  
+  
+table(lonely$vars, lonely$qualifier)  
+  
+```
+
+# Recipe
+```{r}
+data2 <- data %>% 
+  select(o_value, everything(), -surv_num, -max_surv, -full_date, -file, -file2) %>% 
+  mutate(o_value = as.numeric(o_value)) %>% 
+  data.frame()
+dummy_vars <- c("o_value", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
+                , "morning", "midday", "evening", "argument"
+                , "interacted", "lost_Smthng", "late", "frgt_Smthng", "brd_S_Wk"
+                , "exc_S_Wk", "Anx_S_Wk", "tired", "sick", "sleeping", "class"
+                , "music", "internet", "TV", "study", "id") %>% 
+  str_to_lower()
+
+blueprint <- recipe(x = data2,
+                    vars = colnames(data2), 
+                    roles = c("outcome", rep('predictor', 67))) %>%
+    step_dummy(one_of(dummy_vars), -all_outcomes()) %>%
+    step_zv(all_numeric()) %>%
+    step_normalize(all_numeric()) %>% 
+  step_num2factor(o_value,                   
+                  transform = function(x) x + 1,
+                  levels = c("lonely", "notlonely"))
+```
+
+# Split Train/Test
+
+```{r}
+set.seed(123)
+trainIndex <- createDataPartition(data2$o_value, list = FALSE, 
+                                  p = .8, times = 1)
+ str(trainIndex)                                 
+
+
+ 
+                                   
+test_data2 <- data2[-trainIndex, ]
+train_data2 <- data2[trainIndex, ]
+```
+
+```{r, eval = FALSE}
+blueprint <- recipe(
+    o_value ~ .
+    , data = train_data2
+    ) %>%
+    step_dummy(one_of(dummy_vars), -all_outcomes()) %>%
+    step_zv(all_numeric()) %>%
+    step_normalize(all_numeric()) %>%
+  step_num2factor(o_value,
+                  transform = function(x) x + 1,
+                  levels=c('Lonely','Not_Lonely'))
+
+
+```
+# Poor Man's Rolling CV
+try selecting first 15, then 2-16, then 3-17
+```{r}
+rolling_folds <- train_data %>% 
+  group_by(id) %>% 
+  mutate(folds = cut(seq(1, max_surv), breaks = 10, labels = FALSE))
+
+folds = cut(seq(1,nrow(train_data)),breaks=10,labels=FALSE)
+  
+# Create the list for each fold 
+
+lower <- 1
+upper <- 15
+
+sub_15 <- train_data %>% 
+  filter(surv_num<=upper, surv_num >=lower)
+
+test_15 <- train_data %>% 
+  filter(surv_num==upper + 1)
+
+
+
+
+
+      
+      my.indices <- vector('list',10)
+      for(i in 1:10){
+        my.indices[[i]] <- which(folds!=i)
+      }
+
+# Rolling            
+      my.indices <- vector('list',10)
+      for(i in 1:10){
+        my.indices[[i]] <- which(train_data$surv_num>i-1 & train_data$surv_num < i+14)
+      }
+      
+      
+
+
+cv <-  trainControl(method = "cv", 
+                    index = my.indices)
+```
+# Conventional CV
+```{r}
+fitControl <- trainControl(method = "cv",
+                           number = 10,
+                           classProbs = TRUE,
+                   summaryFunction = mnLogLoss)
+
+
+```
+
+
+# Create Cluster
+```{r}
+cl <- makePSOCKcluster(4)
+registerDoParallel(cl)
+```
+
+# Logistic Model
+## Tune
+```{r}
+log_grid = data.frame(alpha = 0, 
+                 lambda = 0)
+```
+
+## Train
+```{r}
+log <- caret::train(blueprint, 
+                        data      = train_data2, 
+                        method    = "glmnet", 
+                        family = "binomial",
+                        metric    = 'logLoss',
+                        trControl = fitControl,
+                        tuneGrid  = log_grid)
+
+
+save(log, file = here("05-results/edld", "log.rda"))
+
+```
+
+
+# GLMNET
+## Tune
+```{r}
+elnet_grid <- expand.grid(alpha = seq(0,1,.01), lambda = seq(0.001,0.5,.005))  
+
+```
+
+## Train
+```{r}
+
+
+Sys.time()
+
+elastic <- caret::train(blueprint, 
+                        data      = train_data2, 
+                        method    = "glmnet", 
+                        family = "binomial",
+                        trControl = fitControl,
+                        tuneGrid  = elnet_grid)
+
+Sys.time()
+
+
+save(elastic, file = here("05-results/edld", "elastic.rda"))
+rm(elastic)
+```
+
+# Random Forest
+## Tune
+```{r}
+rf_grid <- expand.grid(mtry = 300,splitrule='variance',min.node.size=2)
+
+```
+
+
+```{r}
+Sys.time()
+rforest <- caret::train(blueprint,
+                        data      = train_data2,
+                        method    = 'ranger',
+                        trControl = fitControl,
+                        tuneGrid  = rf_grid,
+                        num.trees = 10,
+                        max.depth = 60)
+
+Sys.time()
+
+
+save(rforest, file = here("05-results/edld", "rforest.rda"))
+rm(elastic)
+```
+
+
+
+
+
+
+```{r}
+cv_rolling <- nested_cv(train_data, 
+                            outside = group_vfold_cv(group = "id"),
+                            inside = rolling_origin(
+                              initial    = 15,
+                              assess     = 1,
+                              cumulative = FALSE))
+
+
+cv <- list2DF(cv_rolling)
+```
+
+```{r}
+set.seed(1)
+nested_glmnet <- nestcv.train(y = train_data$id, x = train_data, 
+                              method = "glmnet", 
+                              n_outer_folds = 2, 
+                              cv.cores = 2)
+
+```
+
